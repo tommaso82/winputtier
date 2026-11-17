@@ -237,7 +237,16 @@ void applyThemeSelection(){
         refreshColorEditor();return;
     }
     auto key=keyOf(*theme);
-    if(key==gThemeKey&&gHaveTheme){refreshColorEditor();return;}
+    if(key==gThemeKey&&gHaveTheme){
+        // A remote theme may have just finished downloading. Refresh its data
+        // without discarding a palette the user is actively editing.
+        if(!gDirty){
+            gSelectedTheme=*theme;
+            gUneditedPalette=theme->colors;
+        }
+        refreshColorEditor();
+        return;
+    }
     if(gDirty&&MessageBoxW(gWindow,L"Scartare le modifiche non salvate della palette?",
         L"WinPuttier",MB_YESNO|MB_ICONQUESTION)!=IDYES){
         for(size_t i=0;i<gVisibleThemes.size();++i)
