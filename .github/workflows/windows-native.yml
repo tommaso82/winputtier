@@ -1,0 +1,38 @@
+name: WinPuttier Windows build
+
+on:
+  push:
+    branches: [native-win32, main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure CMake (MSVC x64, static runtime)
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+      - name: Compile Release
+        run: cmake --build build --config Release --parallel
+      - name: Run core parser tests
+        run: ctest --test-dir build -C Release --output-on-failure
+      - name: Inspect executable
+        shell: pwsh
+        run: |
+          $exe = "build/Release/WinPuttier.exe"
+          if (!(Test-Path $exe)) { throw "WinPuttier.exe not found" }
+          Get-Item $exe | Select-Object Name, Length, LastWriteTime
+          Get-FileHash $exe -Algorithm SHA256 | Format-Table
+      - name: Upload standalone executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: WinPuttier-Windows-x64
+          path: build/Release/WinPuttier.exe
+          if-no-files-found: error
+          retention-days: 30
