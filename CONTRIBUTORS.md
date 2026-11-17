@@ -6,7 +6,7 @@ WinPuttier builds on the work of several people and independent open-source proj
 
 | Contributor | Contribution |
 | --- | --- |
-| **[Tommaso (@tommaso82)](https://github.com/tommaso82)** | Project creator and maintainer; conception, requirements, design decisions, development direction and real-world Windows testing. |
+| **[Tommaso (@tommaso82)](https://github.com/tommaso82)** | **Creator & Technical Lead**; project vision, software architecture, requirements, technical direction, design decisions, Windows testing and maintenance. |
 | **[ChatGPT (GPT-6)](https://chatgpt.com/)** | **AI development collaborator**: substantive native C++17/Win32 implementation, GUI engineering, debugging, CI/testing workflows and documentation, working from Tommaso's design direction and feedback. It is an AI system rather than a human developer. |
 
 ## Original software

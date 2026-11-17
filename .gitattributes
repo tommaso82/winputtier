@@ -1,0 +1,4 @@
+# The original Puttier Python application is preserved for reference.
+# Keep historical upstream code accessible without skewing the language stats
+# of WinPuttier, whose actively developed application is native C++/Win32.
+puttier/** linguist-vendored

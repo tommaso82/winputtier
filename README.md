@@ -9,7 +9,7 @@
 
 No Python, .NET, installer, account, or third-party runtime is required. Just one **WinPuttier.exe** for Windows x64.
 
-**Created and maintained by [Tommaso (@tommaso82)](https://github.com/tommaso82), with [ChatGPT (GPT-6)](https://chatgpt.com/) as the AI development collaborator behind the native C++/Win32 implementation, GUI and tooling.**
+**Created and technically led by [Tommaso (@tommaso82)](https://github.com/tommaso82), with [ChatGPT (GPT-6)](https://chatgpt.com/) as AI development collaborator for the native C++/Win32 implementation, GUI and tooling.**
 
 ![WinPuttier – native Windows interface](docs/winputtier-interface.svg)
 
@@ -114,7 +114,7 @@ The standalone binary is at `build\Release\WinPuttier.exe`. The project uses C++
 
 WinPuttier is a **human–AI development collaboration**, with complementary roles:
 
-- **[Tommaso (@tommaso82)](https://github.com/tommaso82)** — **creator & maintainer**: project vision, requirements, feature decisions, design direction, real-world Windows testing and ongoing stewardship.
+- **[Tommaso (@tommaso82)](https://github.com/tommaso82)** — **Creator & Technical Lead**: project vision, software architecture and design direction, feature decisions, Windows testing and maintenance.
 - **[ChatGPT (GPT-6)](https://chatgpt.com/)** — **AI development collaborator**: native C++17/Win32 implementation, GUI development, debugging, CI/testing workflows and technical documentation. Credited for substantive engineering work, while remaining an AI system rather than a human contributor.
 
 **Original Puttier and theme authors** (whose work made this possible):
