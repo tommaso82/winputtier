@@ -3,8 +3,8 @@
 101 ICON "winputtier.ico"
 
 1 VERSIONINFO
- FILEVERSION 0,6,0,0
- PRODUCTVERSION 0,6,0,0
+ FILEVERSION 0,6,1,0
+ PRODUCTVERSION 0,6,1,0
  FILEFLAGSMASK 0x3fL
  FILEFLAGS 0x0L
  FILEOS 0x40004L
@@ -17,11 +17,11 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "WinPuttier Contributors\0"
             VALUE "FileDescription", "WinPuttier - PuTTY Theme Manager\0"
-            VALUE "FileVersion", "0.6.0\0"
+            VALUE "FileVersion", "0.6.1\0"
             VALUE "InternalName", "WinPuttier\0"
             VALUE "OriginalFilename", "WinPuttier.exe\0"
             VALUE "ProductName", "WinPuttier\0"
-            VALUE "ProductVersion", "0.6.0\0"
+            VALUE "ProductVersion", "0.6.1\0"
             VALUE "LegalCopyright", "WinPuttier contributors; original Puttier CC0-1.0\0"
         END
     END

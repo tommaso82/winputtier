@@ -22,6 +22,7 @@ No installation, Python or .NET is needed. The executable is currently **unsigne
 
 ## Features
 
+- **Visual refinement (0.6.1):** white app background with a subtle pale-blue full-width header, aligned 16px card footer margins, denser PuTTY session/theme lists, clean rounded buttons and inset native text fields. Theme collections use a rounded selector with a native menu popup. System scrollbars remain native for reliable keyboard, wheel and drag behavior.
 - **Refined native UI:** rounded selection rows in the PuTTY sessions and themes lists, lighter typography and buttons, a cached-theme count and a cleaner ANSI preview. Session icons are uniform; theme thumbnails show colours from each actual locally available 22-colour PuTTY palette, never a guessed category or synthetic palette.
 - **English / Italiano:** detects the Windows display language on first launch, with a compact IT / EN segmented selector at the top right. Language changes take effect immediately; the choice is remembered. One executable includes both languages.
 - **Session-specific changes:** writes only PuTTY's `Colour0`–`Colour21` values for the selected session, leaving connection settings and credentials untouched.

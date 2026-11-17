@@ -27,7 +27,8 @@ enum : int {
     ID_REFRESH=205, ID_SOURCES=206, ID_IMPORT=207, ID_DOWNLOAD=208,
     ID_PICKER=209, ID_HEX_APPLY=210, ID_RESET=211, ID_SAVE_PERSONAL=212, ID_EXPORT=213,
     ID_SWATCH_FIRST=500, ID_FAVORITE=215, ID_LANGUAGE_IT=216, ID_LANGUAGE_EN=217,
-    ID_MODAL_EDIT=901, ID_MODAL_SAVE=902, ID_MODAL_CANCEL=903
+    ID_MODAL_EDIT=901, ID_MODAL_SAVE=902, ID_MODAL_CANCEL=903,
+    ID_SOURCE_MENU_FIRST=1200
 };
 constexpr UINT WM_SYNC_DONE=WM_APP+10;
 constexpr UINT WM_SYNC_PROGRESS=WM_APP+11;
@@ -48,7 +49,7 @@ HWND gRefresh=nullptr,gSources=nullptr,gImport=nullptr;
 HWND gPicker=nullptr,gHexApply=nullptr,gReset=nullptr,gSavePersonal=nullptr,gExport=nullptr;
 HFONT gFont=nullptr,gMono=nullptr,gTitleFont=nullptr,gSectionFont=nullptr,gSmallFont=nullptr;
 HFONT gListNameFont=nullptr,gListDetailFont=nullptr,gButtonFont=nullptr;
-HBRUSH gBackgroundBrush=nullptr,gCardBrush=nullptr;
+HBRUSH gBackgroundBrush=nullptr,gCardBrush=nullptr,gHeaderBrush=nullptr;
 int gDpi=96;
 std::vector<std::wstring> gFavorites;
 std::vector<std::wstring> gFilterSources;
@@ -108,7 +109,7 @@ HWND make(const wchar_t* klass,const wchar_t* label,DWORD style,int id,DWORD ex=
 }
 HWND label(const wchar_t* label,int id){return make(L"STATIC",label,0,id);}
 HWND button(const wchar_t* label,int id){return make(L"BUTTON",label,WS_TABSTOP|BS_OWNERDRAW,id);}
-HWND edit(const wchar_t* text,int id){return make(L"EDIT",text,WS_TABSTOP|ES_AUTOHSCROLL,id,WS_EX_CLIENTEDGE);}
+HWND edit(const wchar_t* text,int id){return make(L"EDIT",text,WS_TABSTOP|ES_AUTOHSCROLL,id);}
 struct PendingMove { HWND window; int x,y,w,h; };
 std::vector<PendingMove> gLayoutMoves;
 bool gCollectingLayout=false;
@@ -171,23 +172,23 @@ void layout() {
 
  move(gSessionTitle,x1,top+pix(13),w1,pix(27));
  move(gSessions,x1,top+pix(48),w1,bottom-top-pix(230));
- int yy=bottom-pix(166);
+ int yy=bottom-pix(164);
  move(gReload,x1,yy,w1,pix(31));yy+=pix(38);
  move(gSaveSession,x1,yy,w1,pix(31));yy+=pix(38);
  move(gApply,x1,yy,w1,pix(35));yy+=pix(41);
  move(gRestore,x1,yy,w1,pix(31));
 
  move(gThemesTitle,x2,top+pix(13),w2,pix(26));
- move(gSourceFilter,x2,top+pix(46),w2,pix(240));
+ move(gSourceFilter,x2,top+pix(46),w2,pix(33));
  move(gSearchLabel,x2,top+pix(82),w2,pix(18));
- move(gSearch,x2,top+pix(105),w2,pix(30));
+ move(gSearch,x2+pix(9),top+pix(109),w2-2*pix(9),pix(22));
  move(gThemes,x2,top+pix(144),w2,bottom-top-pix(288));
- move(gLibraryStats,x2,bottom-pix(131),w2,pix(20));
+ move(gLibraryStats,x2,bottom-pix(123),w2,pix(20));
  const int half=(w2-pix(8))/2;
- move(gRefresh,x2,bottom-pix(105),half,pix(33));
- move(gSources,x2+half+pix(8),bottom-pix(105),half,pix(33));
- move(gImport,x2,bottom-pix(63),half,pix(33));
- move(gFavoriteButton,x2+half+pix(8),bottom-pix(63),half,pix(33));
+ move(gRefresh,x2,bottom-pix(91),half,pix(33));
+ move(gSources,x2+half+pix(8),bottom-pix(91),half,pix(33));
+ move(gImport,x2,bottom-pix(49),half,pix(33));
+ move(gFavoriteButton,x2+half+pix(8),bottom-pix(49),half,pix(33));
 
  move(gPreviewTitle,x3,top+pix(13),w3,pix(26));
  const int previewY=top+pix(45);
@@ -205,13 +206,13 @@ void layout() {
  const int editorRight=x3+editorHalf+editorGap;
  // Same two-column grid for RGB, HEX and their paired actions.
  move(gColorRgb,x3,bottom-pix(161),editorHalf,pix(19));
- move(gHex,x3,bottom-pix(138),editorHalf,pix(29));
+ move(gHex,x3+pix(9),bottom-pix(134),editorHalf-pix(18),pix(22));
  move(gHexApply,editorRight,bottom-pix(138),editorHalf,pix(29));
  move(gPicker,x3,bottom-pix(102),editorHalf,pix(29));
  move(gReset,editorRight,bottom-pix(102),editorHalf,pix(29));
- move(gPersonalName,x3,bottom-pix(68),w3,pix(28));
- move(gSavePersonal,x3,bottom-pix(35),(w3-pix(8))/2,pix(29));
- move(gExport,x3+(w3+pix(8))/2,bottom-pix(35),(w3-pix(8))/2,pix(29));
+ move(gPersonalName,x3+pix(9),bottom-pix(64),w3-pix(18),pix(22));
+ move(gSavePersonal,x3,bottom-pix(45),(w3-pix(8))/2,pix(29));
+ move(gExport,x3+(w3+pix(8))/2,bottom-pix(45),(w3-pix(8))/2,pix(29));
  move(gStatus,pix(20),H-pix(36),W-pix(40),pix(25));
  commitLayout();
 }
@@ -308,19 +309,31 @@ void populateSourceFilter(){
     names.insert(L"Personali");
     for(auto& src:wp::configuredSources())names.insert(src.name);
     for(auto& t:gAllThemes)names.insert(t.source);
-    SendMessageW(gSourceFilter,CB_RESETCONTENT,0,0);
     gFilterSources.clear();
     gFilterSources.push_back(L"Tutte");
     for(const auto& n:names)gFilterSources.push_back(n);
-    int index=0;
-    for(size_t i=0;i<gFilterSources.size();++i){
-        const auto display=wp::tr(gFilterSources[i]);
-        SendMessageW(gSourceFilter,CB_ADDSTRING,0,(LPARAM)display.c_str());
-        if(gFilterSources[i]==was)index=static_cast<int>(i);
-    }
-    if(gFilterSources[index]!=was)was=L"Tutte";
+    if(std::find(gFilterSources.begin(),gFilterSources.end(),was)==gFilterSources.end())
+        was=L"Tutte";
     gSelectedSource=was;
-    SendMessageW(gSourceFilter,CB_SETCURSEL,index,0);
+    localizedText(gSourceFilter,was);
+}
+int showSourceMenu(){
+    if(gFilterSources.empty())return -1;
+    HMENU menu=CreatePopupMenu();
+    if(!menu)return -1;
+    for(size_t i=0;i<gFilterSources.size();++i){
+        const auto translated=wp::tr(gFilterSources[i]);
+        const UINT state=MF_STRING|(gSelectedSource==gFilterSources[i]?MF_CHECKED:0);
+        AppendMenuW(menu,state,ID_SOURCE_MENU_FIRST+i,translated.c_str());
+    }
+    RECT rect{};GetWindowRect(gSourceFilter,&rect);
+    const UINT command=TrackPopupMenu(menu,
+        TPM_RETURNCMD|TPM_LEFTALIGN|TPM_TOPALIGN|TPM_RIGHTBUTTON,
+        rect.left,rect.bottom,0,gWindow,nullptr);
+    DestroyMenu(menu);
+    if(command<ID_SOURCE_MENU_FIRST)return -1;
+    const size_t index=command-ID_SOURCE_MENU_FIRST;
+    return index<gFilterSources.size()?static_cast<int>(index):-1;
 }
 void applyThemeSelection(){
     auto theme=chosenCatalogTheme();
@@ -430,11 +443,11 @@ void drawSessionRow(DRAWITEMSTRUCT* ds){
         paintRounded(ds->hDC,active,RGB(235,242,255),RGB(191,215,252),pix(14));
     }
     const int y=(r.top+r.bottom)/2;
-    RECT tile{r.left+pix(11),y-pix(14),r.left+pix(39),y+pix(14)};
+    RECT tile{r.left+pix(11),y-pix(12),r.left+pix(35),y+pix(12)};
     paintRounded(ds->hDC,tile,RGB(228,237,251),RGB(223,232,248),pix(10));
     drawListText(ds->hDC,L">_",{tile.left+pix(4),tile.top+pix(2),
                   tile.right-pix(2),tile.bottom-pix(2)},gMono,RGB(49,101,198));
-    const RECT label{r.left+pix(50),r.top+pix(4),r.right-pix(10),r.bottom-pix(4)};
+    const RECT label{r.left+pix(44),r.top+pix(3),r.right-pix(10),r.bottom-pix(4)};
     drawListText(ds->hDC,gSessionItems[ds->itemID].label,label,
                  gListNameFont,selected?RGB(31,84,176):RGB(30,45,72));
 }
@@ -450,7 +463,7 @@ void drawThemeRow(DRAWITEMSTRUCT* ds){
         RECT active{r.left+pix(3),r.top+pix(2),r.right-pix(4),r.bottom-pix(2)};
         paintRounded(ds->hDC,active,RGB(235,242,255),RGB(191,215,252),pix(14));
     }
-    const int sw=pix(13),space=pix(2);
+    const int sw=pix(12),space=pix(2);
     const int startX=r.left+pix(12);
     const int startY=(r.top+r.bottom-(2*sw+space))/2;
     if(t.available){
@@ -472,13 +485,13 @@ void drawThemeRow(DRAWITEMSTRUCT* ds){
     }
     const int textX=startX+sw*2+space+pix(12);
     const int right=r.right-pix(33);
-    RECT title{textX,r.top+pix(6),right,r.top+pix(29)};
-    RECT detail{textX,r.top+pix(29),right,r.bottom-pix(4)};
+    RECT title{textX,r.top+pix(2),right,r.top+pix(23)};
+    RECT detail{textX,r.top+pix(22),right,r.bottom-pix(2)};
     drawListText(ds->hDC,t.name,title,gListNameFont,
                  selected?RGB(31,84,176):RGB(30,45,72));
     drawListText(ds->hDC,wp::tr(t.source),detail,gListDetailFont,RGB(107,125,152));
     const bool favourite=wp::isFavorite(t,gFavorites);
-    RECT star{r.right-pix(32),r.top+pix(6),r.right-pix(8),r.bottom-pix(6)};
+    RECT star{r.right-pix(32),r.top+pix(3),r.right-pix(8),r.bottom-pix(3)};
     drawListText(ds->hDC,favourite?L"★":L"☆",star,gSectionFont,
                  favourite?RGB(224,154,26):RGB(181,195,216));
 }
@@ -508,6 +521,7 @@ void drawButton(DRAWITEMSTRUCT* ds) {
         primary?RGB(47,102,223):favorite?RGB(237,196,101):RGB(215,226,242);
     COLORREF foreground=disabled?RGB(151,162,177):
         primary?RGB(255,255,255):favorite?RGB(135,93,24):RGB(34,55,89);
+    FillRect(ds->hDC,&r,gCardBrush); // Paint corner pixels before the rounded button.
     HBRUSH brush=CreateSolidBrush(back);
     HPEN pen=CreatePen(PS_SOLID,pix(1),edge);
     auto oldBrush=SelectObject(ds->hDC,brush);
@@ -521,6 +535,22 @@ void drawButton(DRAWITEMSTRUCT* ds) {
     InflateRect(&r,-pix(7),0);
     DrawTextW(ds->hDC,txt,-1,&r,DT_CENTER|DT_VCENTER|DT_SINGLELINE|DT_END_ELLIPSIS);
     SelectObject(ds->hDC,prior);
+}
+void drawSourceFilter(DRAWITEMSTRUCT* ds){
+    RECT r=ds->rcItem;
+    FillRect(ds->hDC,&r,gCardBrush);
+    RECT inner{r.left+pix(1),r.top+pix(1),r.right-pix(1),r.bottom-pix(1)};
+    paintRounded(ds->hDC,inner,RGB(255,255,255),RGB(208,221,240),pix(12));
+    RECT label{r.left+pix(12),r.top+pix(2),r.right-pix(32),r.bottom-pix(2)};
+    drawListText(ds->hDC,textOf(gSourceFilter),label,gFont,RGB(36,55,87));
+    const int cx=r.right-pix(18),cy=(r.top+r.bottom)/2;
+    HPEN pen=CreatePen(PS_SOLID,std::max(1,pix(1)),RGB(96,117,146));
+    HGDIOBJ old=SelectObject(ds->hDC,pen);
+    MoveToEx(ds->hDC,cx-pix(5),cy-pix(2),nullptr);
+    LineTo(ds->hDC,cx,cy+pix(3));
+    LineTo(ds->hDC,cx+pix(5),cy-pix(2));
+    SelectObject(ds->hDC,old);
+    DeleteObject(pen);
 }
 void drawLanguageSegment(DRAWITEMSTRUCT* ds) {
     const bool italian=ds->CtlID==ID_LANGUAGE_IT;
@@ -553,6 +583,12 @@ void paintChrome(HWND wnd) {
     HDC dc=BeginPaint(wnd,&ps);
     RECT r{};GetClientRect(wnd,&r);
     FillRect(dc,&r,gBackgroundBrush);
+    RECT header{0,0,r.right,pix(72)};
+    FillRect(dc,&header,gHeaderBrush);
+    RECT separator{0,pix(71),r.right,pix(72)};
+    HBRUSH sep=CreateSolidBrush(RGB(227,235,248));
+    FillRect(dc,&separator,sep);
+    DeleteObject(sep);
     if(gSessions){
         auto col=columns();
         const int xs[3]={col.left,col.mid,col.right};
@@ -566,6 +602,19 @@ void paintChrome(HWND wnd) {
         }
         SelectObject(dc,prevBrush);SelectObject(dc,prevPen);
         DeleteObject(brush);DeleteObject(pen);
+        // White rounded input shells; the native EDITs are inset into each
+        // shell to preserve caret, clipboard and keyboard behavior.
+        const int pad=pix(14);
+        const int x2=col.mid+pad,x3=col.right+pad;
+        const int w2=col.midWidth-2*pad,w3=col.rightWidth-2*pad;
+        const int bottom=col.bottom,top=col.top;
+        const int gap=pix(8),half=(w3-gap)/2;
+        const RECT searchBox{x2,top+pix(105),x2+w2,top+pix(135)};
+        const RECT hexBox{x3,bottom-pix(138),x3+half,bottom-pix(109)};
+        const RECT nameBox{x3,bottom-pix(68),x3+w3,bottom-pix(40)};
+        paintRounded(dc,searchBox,RGB(255,255,255),RGB(210,223,241),pix(12));
+        paintRounded(dc,hexBox,RGB(255,255,255),RGB(210,223,241),pix(12));
+        paintRounded(dc,nameBox,RGB(255,255,255),RGB(210,223,241),pix(12));
         // Accent line in the header keeps visual hierarchy without busy decoration.
         RECT bar{pix(18),pix(17),pix(23),pix(49)};
         HBRUSH blue=CreateSolidBrush(RGB(47,102,223));
@@ -830,11 +879,12 @@ void rebuildFonts(){
     }
 }
 void createControls(){
-    if(!gBackgroundBrush)gBackgroundBrush=CreateSolidBrush(RGB(245,247,251));
+    if(!gBackgroundBrush)gBackgroundBrush=CreateSolidBrush(RGB(255,255,255));
+    if(!gHeaderBrush)gHeaderBrush=CreateSolidBrush(RGB(243,247,255));
     if(!gCardBrush)gCardBrush=CreateSolidBrush(RGB(255,255,255));
     rebuildFonts();
     gAppName=label(L"WinPuttier",8000);
-    gAppSub=label(L"PuTTY Theme Manager  ·  Versione 0.6.0",8010);
+    gAppSub=label(L"PuTTY Theme Manager  ·  Versione 0.6.1",8010);
     gLanguageIt=button(L"IT",ID_LANGUAGE_IT);
     gLanguageEn=button(L"EN",ID_LANGUAGE_EN);
     gSessionTitle=label(L"01   SESSIONI PuTTY",8001);
@@ -843,7 +893,7 @@ void createControls(){
     gPaletteTitle=label(L"EDITOR PALETTE    ·    22 colori",8004);
     gSessions=make(L"LISTBOX",L"",WS_TABSTOP|WS_VSCROLL|LBS_NOTIFY|LBS_OWNERDRAWFIXED|LBS_HASSTRINGS|LBS_NOINTEGRALHEIGHT,ID_SESSIONS);
     gThemes=make(L"LISTBOX",L"",WS_TABSTOP|WS_VSCROLL|LBS_NOTIFY|LBS_OWNERDRAWFIXED|LBS_HASSTRINGS|LBS_NOINTEGRALHEIGHT,ID_THEMES);
-    gSourceFilter=make(L"COMBOBOX",L"",WS_TABSTOP|WS_VSCROLL|CBS_DROPDOWNLIST,ID_SOURCE_FILTER);
+    gSourceFilter=button(L"",ID_SOURCE_FILTER);
     gSearchLabel=label(L"RICERCA TEMI",8007);
     gLibraryStats=label(L"Libreria locale",8008);
     gSearch=edit(L"",ID_SEARCH);
@@ -875,7 +925,7 @@ void createControls(){
 void refreshLanguage(){
     // Relabel controls in place; preserve session/theme selection and unsaved edits.
     const std::pair<HWND,const wchar_t*> labels[]={
-        {gAppSub,L"PuTTY Theme Manager  ·  Versione 0.6.0"},
+        {gAppSub,L"PuTTY Theme Manager  ·  Versione 0.6.1"},
         {gSessionTitle,L"01   SESSIONI PuTTY"},
         {gThemesTitle,L"02   LIBRERIA TEMI"},
         {gPreviewTitle,L"03   ANTEPRIMA ANSI · SCORRI PER ESPLORARE"},
@@ -927,6 +977,8 @@ LRESULT CALLBACK mainProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
         SetWindowPos(wnd,nullptr,rect->left,rect->top,rect->right-rect->left,
             rect->bottom-rect->top,SWP_NOACTIVATE|SWP_NOZORDER);
         rebuildFonts();
+        SendMessageW(gSessions,LB_SETITEMHEIGHT,0,pix(36));
+        SendMessageW(gThemes,LB_SETITEMHEIGHT,0,pix(45));
         layout();
         refreshColorEditor();
         InvalidateRect(wnd,nullptr,TRUE);
@@ -940,8 +992,7 @@ LRESULT CALLBACK mainProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
         SetBkMode(dc,TRANSPARENT);
         SetTextColor(dc,(child==gStatus||child==gAppSub||child==gLibraryStats)?
                      RGB(102,114,132):RGB(35,53,80));
-        return (LRESULT)((child==gAppName||child==gAppSub||child==gStatus)?
-                         gBackgroundBrush:gCardBrush);
+        return (LRESULT)((child==gAppName||child==gAppSub)?gHeaderBrush:gCardBrush);
     }
     case WM_CTLCOLORLISTBOX:
     case WM_CTLCOLOREDIT:
@@ -950,8 +1001,8 @@ LRESULT CALLBACK mainProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
         return (LRESULT)gCardBrush;
     case WM_MEASUREITEM: {
         auto* mi=reinterpret_cast<MEASUREITEMSTRUCT*>(l);
-        if(mi->CtlID==ID_SESSIONS){mi->itemHeight=pix(47);return TRUE;}
-        if(mi->CtlID==ID_THEMES){mi->itemHeight=pix(55);return TRUE;}
+        if(mi->CtlID==ID_SESSIONS){mi->itemHeight=pix(36);return TRUE;}
+        if(mi->CtlID==ID_THEMES){mi->itemHeight=pix(45);return TRUE;}
         break;
     }
     case WM_DRAWITEM: {
@@ -961,6 +1012,7 @@ LRESULT CALLBACK mainProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
         if(ds->CtlID>=ID_SWATCH_FIRST&&ds->CtlID<ID_SWATCH_FIRST+22){
             redrawSwatch(ds,(int)ds->CtlID-ID_SWATCH_FIRST);return TRUE;
         }
+        if(ds->CtlID==ID_SOURCE_FILTER){drawSourceFilter(ds);return TRUE;}
         if(ds->CtlID==ID_LANGUAGE_IT||ds->CtlID==ID_LANGUAGE_EN){
             drawLanguageSegment(ds);return TRUE;
         }
@@ -985,10 +1037,11 @@ LRESULT CALLBACK mainProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
             }
             return 0;
         }
-        if(id==ID_SOURCE_FILTER&&notification==CBN_SELCHANGE){
-            int ix=(int)SendMessageW(gSourceFilter,CB_GETCURSEL,0,0);
-            if(ix>=0&&ix<(int)gFilterSources.size()){
-                gSelectedSource=gFilterSources[ix];
+        if(id==ID_SOURCE_FILTER&&notification==BN_CLICKED){
+            const int index=showSourceMenu();
+            if(index>=0){
+                gSelectedSource=gFilterSources[index];
+                localizedText(gSourceFilter,gSelectedSource);
                 gDirty=false;gThemeKey.clear();filterThemes();
             }
             return 0;
@@ -1052,6 +1105,7 @@ LRESULT CALLBACK mainProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
         if(gListDetailFont)DeleteObject(gListDetailFont);
         if(gButtonFont)DeleteObject(gButtonFont);
         if(gBackgroundBrush)DeleteObject(gBackgroundBrush);
+        if(gHeaderBrush)DeleteObject(gHeaderBrush);
         if(gCardBrush)DeleteObject(gCardBrush);
         gWindow=nullptr;
         PostQuitMessage(0);return 0;

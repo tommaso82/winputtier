@@ -1,24 +1,23 @@
-# WinPuttier 0.6.0
+# WinPuttier 0.6.1
 
-A more polished **native Windows** interface for WinPuttier, the PuTTY theme manager. For **Windows 10/11 x64**.
+WinPuttier visual-polish release for **Windows 10/11 x64**.
 
-## Refined interface
+## Visual refinements
 
-- **Sessions:** cleaner, taller list rows with a consistent terminal icon. Session names are left exactly as stored by PuTTY; WinPuttier does not guess whether a session is a VPS, router or NAS.
-- **Theme library:** each available theme is represented by a small **real colour thumbnail** computed from its PuTTY palette (background, foreground, green and blue). Theme name and source are shown on separate lines, with the actual favourite state on the right.
-- **Better visual hierarchy:** lighter body typography, softer blue selection highlights, more rounded buttons and panels, and rounded palette swatches.
-- **Header:** a subtle badge displaying the actual number of locally available offline themes.
-- **ANSI preview:** a rounded terminal surface; PuTTY colour semantics and all existing preview features remain unchanged.
-- **Native and portable:** the entire visual treatment is rendered through Win32/GDI without browser engines, external graphics, icon packs or extra runtime dependencies.
+- White main window and a subtle **full-width pale-blue header** extending behind the IT/EN language selector.
+- **Aligned bottom margins:** the final action buttons in all three panels now finish with the same 16px inset.
+- **Clean rounded buttons:** the entire owner-drawn button surface is painted, eliminating rectangular grey backgrounds around pale buttons.
+- **More compact lists:** session rows reduced from 47 to 36 logical pixels, theme rows from 55 to 45; icon and two-line palette labels adjusted accordingly.
+- **Rounded text inputs:** native Windows edit controls are inset into custom rounded white frames. Standard keyboard shortcuts, text editing and clipboard behavior are preserved.
+- **Cleaner collection selector:** rounded owner-drawn control with a native Windows popup for accessible mouse/keyboard navigation.
+- The session names, theme palettes, backup logic, ANSI preview, and bilingual IT/EN switching are unchanged.
 
-## Unchanged safeguards
-
-WinPuttier applies colours **only to the selected saved PuTTY session** and preserves the original session-colour backup. Theme import, export, sync, favourites, restore, and the Italian/English language selector are unchanged.
+**Note:** list and ANSI preview scrollbars remain native for this release. The popup opened by the collection selector is also a native Windows menu. These are intentionally preserved pending a separate interaction-tested scrollbar redesign.
 
 ## Download
 
-Download **WinPuttier.exe** from the release assets. It is a **portable, unsigned** application; no installer, Python or .NET required.
+Download **WinPuttier.exe** from the assets below. Portable Windows x64 executable, unsigned; no installer, Python or .NET needed.
 
-**SHA256SUMS.txt** provides the SHA-256 checksum of the published executable.
+Verify with the attached **SHA256SUMS.txt**.
 
-The original Puttier project and upstream theme authors are acknowledged in [CREDITS.md](https://github.com/tommaso82/winputtier/blob/main/CREDITS.md).
+The original Puttier project and all upstream theme authors remain credited in [CREDITS.md](https://github.com/tommaso82/winputtier/blob/main/CREDITS.md).
