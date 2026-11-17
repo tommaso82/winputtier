@@ -39,6 +39,9 @@ std::vector<std::wstring> favoriteIds();
 bool setFavorite(const Theme& theme, bool favorite);
 bool isFavorite(const Theme& theme, const std::vector<std::wstring>& ids);
 
+// The text search matches theme names only; source selection is handled separately.
+// The query must be trimmed and lowercase (as prepared by the search field).
+bool themeNameContains(const Theme& theme,const std::wstring& normalizedQuery);
 std::vector<Theme> localThemes();
 std::vector<Theme> remoteCatalog();
 std::vector<Theme> parseCatalogText(const std::wstring& content);

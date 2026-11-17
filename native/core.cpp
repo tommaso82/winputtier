@@ -407,6 +407,12 @@ bool saveCustomTheme(const Theme& theme, const std::wstring& path, std::wstring&
     }
     return true;
 }
+bool themeNameContains(const Theme& theme,const std::wstring& normalizedQuery) {
+    if(normalizedQuery.empty())return true;
+    std::wstring name=theme.name;
+    std::transform(name.begin(),name.end(),name.begin(),towlower);
+    return name.find(normalizedQuery)!=std::wstring::npos;
+}
 std::vector<Theme> localThemes() {
     std::vector<Theme> out;
     out.push_back({L"Default (PuTTY)",L"Integrato",L"",defaultPalette(),true});

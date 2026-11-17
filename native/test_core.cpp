@@ -115,6 +115,16 @@ int main() {
            L"03  ANSI 16 COLOURS / SGR CODES") {
         std::cerr<<"Locale translation regression\n";return 18;
     }
-    std::wcout<<L"Native theme identity, favorites, source, localisation and backup tests passed\n";
+    // Search must not return every theme simply because the collection name matches.
+    wp::Theme named; named.name=L"Apple Terminal"; named.source=L"AlexAkulov";
+    wp::Theme sourced; sourced.name=L"Dark Pastel"; sourced.source=L"Terminal Themes";
+    if(!wp::themeNameContains(named,L"terminal") ||
+       wp::themeNameContains(sourced,L"terminal") ||
+       !wp::themeNameContains(sourced,L"pastel") ||
+       !wp::themeNameContains(named,L"") ||
+       wp::themeNameContains(named,L"notfound")) {
+        std::cerr<<"Theme name-only filtering regression\n";return 19;
+    }
+    std::wcout<<L"Native theme identity, favorites, source, localisation, search and backup tests passed\n";
     return 0;
 }

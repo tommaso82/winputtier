@@ -1,12 +1,14 @@
-# WinPuttier 0.6.3
+# WinPuttier 0.6.4
 
-Windows x64 native PuTTY theme manager — microfix release.
+Small search-behaviour fix for the native Windows theme manager.
 
 ## Fixed
-- Corrected the custom theme-name field overlapping the bottom-right **Save custom theme** and **Export .reg** buttons.
-- Shifted the palette/editor controls together so the field has proper room **above** the footer actions and does not collide with the RGB picker or HEX controls.
-- **Preserved the exact common 16-logical-pixel bottom inset in all three panels.** The final button row is in exactly the same position in each panel; only the inner content of the right panel moved.
-- No changes to theme processing, session backups, registry behaviour, language selection, collection menu or modern scrollbars.
+
+- **Theme search now searches the theme name only.** The collection/source name can no longer cause unrelated themes to appear in the results.
+- Collection filtering remains independent, and searches remain case-insensitive.
+- Added regression tests for matches in the theme name, matches only in the source, and empty/nonmatching searches.
+- **No visual UI changes.** The offline-theme count continues to show the size of the local library rather than the number of matching results.
 
 ## Download
-Download the portable, unsigned **WinPuttier.exe** from the release assets for Windows 10/11 x64. No installer or extra runtime is required. Verify the executable with **SHA256SUMS.txt**.
+
+Download the portable, unsigned **WinPuttier.exe** from the release assets (Windows 10/11 x64). The **SHA256SUMS.txt** asset provides the SHA-256 checksum. No installer or extra runtime is required.

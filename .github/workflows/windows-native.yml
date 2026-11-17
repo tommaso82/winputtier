@@ -40,17 +40,17 @@ jobs:
             build/Release/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 30
-      - name: Publish WinPuttier 0.6.3 release
+      - name: Publish WinPuttier 0.6.4 release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = "v0.6.3"
+          $tag = "v0.6.4"
           gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
           if ($LASTEXITCODE -eq 0) {
             Write-Host "Release $tag already exists; leaving it unchanged."
             exit 0
           }
-          gh release create $tag "build/Release/WinPuttier.exe" "build/Release/SHA256SUMS.txt" --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title "WinPuttier 0.6.3" --notes-file RELEASE_NOTES.md --latest
+          gh release create $tag "build/Release/WinPuttier.exe" "build/Release/SHA256SUMS.txt" --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title "WinPuttier 0.6.4" --notes-file RELEASE_NOTES.md --latest
           if ($LASTEXITCODE -ne 0) { throw "GitHub Release creation failed" }

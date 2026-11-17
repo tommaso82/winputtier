@@ -382,8 +382,7 @@ void filterThemes(const std::wstring& preferred=L""){
         if(gSelectedSource==L"★ Preferiti" && !wp::isFavorite(t,gFavorites))continue;
         if(gSelectedSource!=L"Tutte" && gSelectedSource!=L"★ Preferiti" &&
            gSelectedSource!=t.source)continue;
-        const auto haystack=toLower(t.name+L" "+t.source);
-        if(!query.empty()&&haystack.find(query)==std::wstring::npos)continue;
+        if(!wp::themeNameContains(t,query))continue;
         std::wstring name=t.name; // Source and favourite state are rendered in the list row.
         SendMessageW(gThemes,LB_ADDSTRING,0,(LPARAM)name.c_str());
         gVisibleThemes.push_back(i);
@@ -881,7 +880,7 @@ void createControls(){
     if(!gCardBrush)gCardBrush=CreateSolidBrush(RGB(255,255,255));
     rebuildFonts();
     gAppName=label(L"WinPuttier",8000);
-    gAppSub=label(L"PuTTY Theme Manager  ·  Versione 0.6.3",8010);
+    gAppSub=label(L"PuTTY Theme Manager  ·  Versione 0.6.4",8010);
     gLanguageIt=button(L"IT",ID_LANGUAGE_IT);
     gLanguageEn=button(L"EN",ID_LANGUAGE_EN);
     gSessionTitle=label(L"01   SESSIONI PuTTY",8001);
@@ -925,7 +924,7 @@ void createControls(){
 void refreshLanguage(){
     // Relabel controls in place; preserve session/theme selection and unsaved edits.
     const std::pair<HWND,const wchar_t*> labels[]={
-        {gAppSub,L"PuTTY Theme Manager  ·  Versione 0.6.3"},
+        {gAppSub,L"PuTTY Theme Manager  ·  Versione 0.6.4"},
         {gSessionTitle,L"01   SESSIONI PuTTY"},
         {gThemesTitle,L"02   LIBRERIA TEMI"},
         {gPreviewTitle,L"03   ANTEPRIMA ANSI · SCORRI PER ESPLORARE"},
