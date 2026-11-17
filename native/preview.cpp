@@ -214,9 +214,9 @@ void paintContent(HDC dc,int width){
 void setScroll(int value){
     if(!window)return;
     RECT r{};GetClientRect(window,&r);
-    const int limit=std::max(0,kCanvasHeight-(r.bottom-r.top));
+    const int limit=std::max(0,kCanvasHeight-static_cast<int>(r.bottom-r.top));
     scrollY=std::max(0,std::min(value,limit));
-    SCROLLINFOW info{};info.cbSize=sizeof(info);info.fMask=SIF_RANGE|SIF_PAGE|SIF_POS;
+    SCROLLINFO info{};info.cbSize=sizeof(info);info.fMask=SIF_RANGE|SIF_PAGE|SIF_POS;
     info.nMin=0;info.nMax=kCanvasHeight;info.nPage=(UINT)(r.bottom-r.top);
     info.nPos=scrollY;
     SetScrollInfo(window,SB_VERT,&info,TRUE);
@@ -243,7 +243,7 @@ LRESULT CALLBACK windowProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
         setScroll(scrollY-GET_WHEEL_DELTA_WPARAM(w)/WHEEL_DELTA*92);
         return 0;
     case WM_VSCROLL:{
-        SCROLLINFOW info{};info.cbSize=sizeof(info);info.fMask=SIF_ALL;
+        SCROLLINFO info{};info.cbSize=sizeof(info);info.fMask=SIF_ALL;
         GetScrollInfo(wnd,SB_VERT,&info);
         int next=scrollY;
         switch(LOWORD(w)){
