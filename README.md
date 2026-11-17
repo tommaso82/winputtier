@@ -9,6 +9,8 @@
 
 No Python, .NET, installer, account, or third-party runtime is required. Just one **WinPuttier.exe** for Windows x64.
 
+**Created and maintained by [Tommaso (@tommaso82)](https://github.com/tommaso82), with [ChatGPT (GPT-6)](https://chatgpt.com/) as the AI development collaborator behind the native C++/Win32 implementation, GUI and tooling.**
+
 ![WinPuttier – native Windows interface](docs/winputtier-interface.svg)
 
 *Illustrated interface overview based on a real WinPuttier 0.4.x Windows screenshot; example session names are used to protect the owner's configuration.*
@@ -110,10 +112,13 @@ The standalone binary is at `build\Release\WinPuttier.exe`. The project uses C++
 
 ## Contributors & acknowledgments
 
-**The people and projects behind WinPuttier deserve visible credit:**
+WinPuttier is a **human–AI development collaboration**, with complementary roles:
 
-- **[Tommaso (@tommaso82)](https://github.com/tommaso82)** — creator, maintainer, design and testing.
-- **OpenAI ChatGPT (GPT-6)** — AI-assisted C++/Win32 development, interface iteration and documentation. AI assistant, not a human/GitHub account.
+- **[Tommaso (@tommaso82)](https://github.com/tommaso82)** — **creator & maintainer**: project vision, requirements, feature decisions, design direction, real-world Windows testing and ongoing stewardship.
+- **[ChatGPT (GPT-6)](https://chatgpt.com/)** — **AI development collaborator**: native C++17/Win32 implementation, GUI development, debugging, CI/testing workflows and technical documentation. Credited for substantive engineering work, while remaining an AI system rather than a human contributor.
+
+**Original Puttier and theme authors** (whose work made this possible):
+
 - **[anonimoanemico](https://github.com/anonimoanemico)** — author of the original **[Puttier](https://github.com/anonimoanemico/puttier)** Python project (CC0 1.0).
 - **[mbadolato](https://github.com/mbadolato)** — **[iTerm2-Color-Schemes](https://github.com/mbadolato/iTerm2-Color-Schemes)**, credited by the original Puttier.
 - **[jacektrocinski](https://github.com/jacektrocinski)** — **[pretty-putty](https://github.com/jacektrocinski/pretty-putty)**, credited by the original Puttier.
@@ -124,7 +129,7 @@ The standalone binary is at `build\Release\WinPuttier.exe`. The project uses C++
 
 The long original [theme-credit list](CREDITS.md), original [README](docs/README-puttier-original.md), [Python source](puttier/) and [CC0-1.0 license](LICENSE) are retained. Hundreds of individual theme authors are individually acknowledged in that original credit list, which remains unchanged.
 
-WinPuttier is independent from PuTTY itself. GitHub's automated contributors panel is based on commits and GitHub identities; ChatGPT has no such account, so it is credited accurately in the project documentation instead.
+WinPuttier is independent from PuTTY itself. ChatGPT's engineering role is also recorded through a **Co-authored-by** trailer referencing the official ChatGPT Codex Connector bot in [this commit](https://github.com/tommaso82/winputtier/commit/15dcc1151669ac213931f2a02a78fc7855f77e36). GitHub controls whether that identity appears in its automatic Contributors panel.
 
 ---
 
