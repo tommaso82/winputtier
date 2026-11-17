@@ -2,7 +2,7 @@
 
 Lightweight native C++17 / Win32 theme manager for PuTTY sessions. No Python, .NET or third-party runtime required.
 
-**Development branch:** Native Windows port of [Puttier by anonimoanemico](https://github.com/anonimoanemico/puttier). The original Python implementation remains in the repository for reference. WinPuttier 0.4.1 is an **experimental** build. GUI and High DPI behavior should be verified on real Windows installations.
+**Development branch:** Native Windows port of [Puttier by anonimoanemico](https://github.com/anonimoanemico/puttier). The original Python implementation remains in the repository for reference. WinPuttier 0.4.2 is an **experimental** build. GUI and High DPI behavior should be verified on real Windows installations.
 
 ## Project credits
 
@@ -14,7 +14,7 @@ Lightweight native C++17 / Win32 theme manager for PuTTY sessions. No Python, .N
 
 - Lists PuTTY saved sessions from the current user's Windows registry.
 - Works with PuTTY's 22-color Colour0 to Colour21 palette format.
-- Three-column native UI with lightweight card styling, DPI-aware layout, saved PuTTY sessions, local theme catalog, and an **integrated, scrollable ANSI preview**.
+- Three-column native UI with lightweight card styling, DPI-aware layout, clearly legible Segoe UI Semibold text, saved PuTTY sessions, local theme catalog, and an **integrated, scrollable ANSI preview**.
 - The single built-in preview covers realistic sample terminal output, the six default/bold/cursor roles, the 16 ANSI swatches, and **256 foreground/background combinations**. There is **no second popup preview**. Clicking a color highlights its use in the ANSI matrices.
 - Select any of 22 color swatches, enter a HEX value or use the native RGB color picker. Reset unsaved edits at any time.
 - Save edited palettes under a chosen name as personal themes. Saving a theme does not modify a PuTTY session.

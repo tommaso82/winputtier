@@ -643,16 +643,16 @@ void rebuildFonts(){
     if(gTitleFont)DeleteObject(gTitleFont);
     if(gSectionFont)DeleteObject(gSectionFont);
     if(gSmallFont)DeleteObject(gSmallFont);
-    gFont=CreateFontW(-pix(13),0,0,0,FW_MEDIUM,0,0,0,DEFAULT_CHARSET,
-        0,0,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI");
+    gFont=CreateFontW(-pix(13),0,0,0,FW_SEMIBOLD,0,0,0,DEFAULT_CHARSET,
+        0,0,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI Semibold");
     gMono=CreateFontW(-pix(13),0,0,0,FW_NORMAL,0,0,0,DEFAULT_CHARSET,
         0,0,CLEARTYPE_QUALITY,FIXED_PITCH,L"Consolas");
     gTitleFont=CreateFontW(-pix(20),0,0,0,FW_BOLD,0,0,0,DEFAULT_CHARSET,
         0,0,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI");
     gSectionFont=CreateFontW(-pix(15),0,0,0,FW_SEMIBOLD,0,0,0,DEFAULT_CHARSET,
         0,0,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI");
-    gSmallFont=CreateFontW(-pix(12),0,0,0,FW_MEDIUM,0,0,0,DEFAULT_CHARSET,
-        0,0,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI");
+    gSmallFont=CreateFontW(-pix(12),0,0,0,FW_SEMIBOLD,0,0,0,DEFAULT_CHARSET,
+        0,0,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI Semibold");
     if(gWindow){
         EnumChildWindows(gWindow,[](HWND child,LPARAM)->BOOL{
             HFONT font=gFont;
@@ -671,7 +671,7 @@ void createControls(){
     if(!gCardBrush)gCardBrush=CreateSolidBrush(RGB(255,255,255));
     rebuildFonts();
     gAppName=label(L"WinPuttier",8000);
-    gAppSub=label(L"PuTTY Theme Manager  ·  Libreria offline  ·  Versione 0.4",8010);
+    gAppSub=label(L"PuTTY Theme Manager  ·  Libreria offline  ·  Versione 0.4.2",8010);
     gSessionTitle=label(L"01   SESSIONI PuTTY",8001);
     gThemesTitle=label(L"02   LIBRERIA TEMI",8002);
     gPreviewTitle=label(L"03   ANTEPRIMA ANSI · SCORRI PER ESPLORARE",8003);
