@@ -7,9 +7,9 @@ A lightweight, native Windows application for managing **PuTTY colour schemes**.
 
 **Windows 10/11 · x64 · C++17 / Win32 · standalone executable**
 
-![WinPuttier interface overview](docs/winputtier-interface.svg)
+![WinPuttier 0.6.3 interface — anonymized screenshot](docs/winputtier-screenshot.webp)
 
-*Illustration of the interface with example session names; not a live screenshot.*
+*Actual WinPuttier 0.6.3 screenshot with anonymized PuTTY session names.*
 
 ## Get started
 
