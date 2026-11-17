@@ -28,6 +28,7 @@ bool refreshCatalog(std::wstring& message);
 bool downloadTheme(Theme& item, std::wstring& error);
 bool importTheme(const std::wstring& path, std::wstring& message);
 bool saveCustomTheme(const Theme& theme, const std::wstring& path, std::wstring& error);
+bool preserveOriginalBackupFile(const std::wstring& path, const std::wstring& snapshot, std::wstring& message);
 bool applyTheme(const Session& session, const Theme& theme, std::wstring& message);
 bool restoreLastBackup(const Session& session, std::wstring& message);
 bool parseReg(const std::wstring& contents, Theme& theme);

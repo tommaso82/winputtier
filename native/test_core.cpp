@@ -36,6 +36,28 @@ int main() {
     if(wp::parseReg(invalid,decoded)) {
         std::cerr<<"Out-of-range color accepted\n";return 7;
     }
-    std::wcout<<L"All native theme parser tests passed\n";
+    // The first snapshot is immutable across repeated theme applications.
+    wchar_t base[MAX_PATH+2]{};
+    if(!GetTempPathW(MAX_PATH,base))return 8;
+    wchar_t snapshot[MAX_PATH+2]{};
+    if(!GetTempFileNameW(base,L"WPT",0,snapshot))return 9;
+    DeleteFileW(snapshot);
+    std::wstring error;
+    const bool first=wp::preserveOriginalBackupFile(snapshot,L"original-A\n",error);
+    const bool second=wp::preserveOriginalBackupFile(snapshot,L"intermediate-B\n",error);
+    const bool third=wp::preserveOriginalBackupFile(snapshot,L"latest-C\n",error);
+    HANDLE handle=CreateFileW(snapshot,GENERIC_READ,FILE_SHARE_READ,nullptr,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,nullptr);
+    std::string bytes;
+    if(handle!=INVALID_HANDLE_VALUE) {
+        char content[256]{};
+        DWORD got=0;
+        if(ReadFile(handle,content,sizeof(content),&got,nullptr))bytes.assign(content,got);
+        CloseHandle(handle);
+    }
+    DeleteFileW(snapshot);
+    if(!first||!second||!third||bytes!="original-A\n") {
+        std::cerr<<"Original snapshot replaced by subsequent theme changes\n";return 10;
+    }
+    std::wcout<<L"All native theme parser and original-backup tests passed\n";
     return 0;
 }

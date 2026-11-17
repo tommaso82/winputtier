@@ -117,11 +117,22 @@ std::wstring idForSession(const Session& s) {
     wchar_t out[24]; swprintf_s(out,L"%016llx",(unsigned long long)h);
     return out;
 }
-std::wstring backupName(const Session& s) {
-    SYSTEMTIME now; GetLocalTime(&now);
-    wchar_t time[64];
-    swprintf_s(time,L"%04d%02d%02d-%02d%02d%02d-%03d",now.wYear,now.wMonth,now.wDay,now.wHour,now.wMinute,now.wSecond,now.wMilliseconds);
-    return L"backup-"+idForSession(s)+L"-"+time+L".wpb";
+std::wstring originalBackupPath(const Session& s) {
+    return join(backupDir(), L"original-" + idForSession(s) + L".wpb");
+}
+std::wstring oldestLegacyBackupPath(const Session& s) {
+    auto pattern = join(backupDir(), L"backup-" + idForSession(s) + L"-*.wpb");
+    WIN32_FIND_DATAW data{};
+    HANDLE find = FindFirstFileW(pattern.c_str(), &data);
+    if (find == INVALID_HANDLE_VALUE) return {};
+    std::wstring oldest;
+    do {
+        if (!(data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+            if (oldest.empty() || data.cFileName < oldest) oldest = data.cFileName;
+        }
+    } while (FindNextFileW(find, &data));
+    FindClose(find);
+    return oldest.empty() ? L"" : join(backupDir(), oldest);
 }
 std::wstring backupText(const Session& s, const std::array<Existing,22>& old) {
     std::wstring out=L"WinPuttierBackup1\n"+s.key+L"\n";
@@ -409,53 +420,92 @@ bool downloadTheme(Theme& item, std::wstring& error) {
     item.colors=t.colors;item.available=true;
     return true;
 }
+// Create-once protects the original snapshot from subsequent theme changes.
+// Never replace an existing file; the caller verifies its session identity and format.
+bool preserveOriginalBackupFile(const std::wstring& path, const std::wstring& snapshot, std::wstring& message) {
+    HANDLE file = CreateFileW(path.c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr,
+                              CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (file == INVALID_HANDLE_VALUE) {
+        DWORD error = GetLastError();
+        if (error == ERROR_FILE_EXISTS || error == ERROR_ALREADY_EXISTS) return true;
+        message = L"Impossibile creare il backup originale (errore " + std::to_wstring(error) + L")";
+        return false;
+    }
+    std::string bytes = wideToUtf8(snapshot);
+    DWORD count = 0;
+    bool ok = WriteFile(file, bytes.data(), (DWORD)bytes.size(), &count, nullptr) != FALSE &&
+              count == bytes.size() && FlushFileBuffers(file) != FALSE;
+    CloseHandle(file);
+    if (!ok) {
+        DeleteFileW(path.c_str());
+        message = L"Salvataggio del backup originale fallito; nessuna modifica effettuata.";
+    }
+    return ok;
+}
 bool applyTheme(const Session& session,const Theme& theme,std::wstring& message) {
     HKEY key=nullptr;
     LONG e=RegOpenKeyExW(HKEY_CURRENT_USER,regPath(session).c_str(),0,KEY_QUERY_VALUE|KEY_SET_VALUE,&key);
     if(e!=ERROR_SUCCESS){message=errorCode(L"Sessione non accessibile",e);return false;}
-    std::array<Existing,22> old;
-    if(!scanValues(key,old)){RegCloseKey(key);message=L"Impossibile leggere i colori originali; nessuna modifica.";return false;}
-    const auto path=join(backupDir(),backupName(session));
-    if(!writeTextUtf8(path,backupText(session,old))) {
-        RegCloseKey(key);message=L"Backup fallito: nessuna modifica.";return false;
+    std::array<Existing,22> old{};
+    if(!scanValues(key,old)){RegCloseKey(key);message=L"Impossibile leggere i colori correnti; nessuna modifica.";return false;}
+    const auto path=originalBackupPath(session);
+    std::array<Existing,22> original{};
+    if(GetFileAttributesW(path.c_str())==INVALID_FILE_ATTRIBUTES) {
+        // For users who ran an older preview build, the oldest historical snapshot
+        // is the original; do not mistake the already modified colors for it.
+        const auto legacy=oldestLegacyBackupPath(session);
+        if(!legacy.empty()) {
+            if(!loadBackup(legacy,session,original)){
+                RegCloseKey(key);message=L"Backup precedente non valido; nessuna modifica.";return false;
+            }
+        } else {
+            original=old;
+        }
+        if(!preserveOriginalBackupFile(path,backupText(session,original),message)){
+            RegCloseKey(key);return false;
+        }
+    }
+    if(!loadBackup(path,session,original)){
+        RegCloseKey(key);
+        message=L"Il backup originale esistente non e' valido. Nessuna modifica effettuata.";
+        return false;
     }
     bool ok=true;
     for(int i=0;i<22;++i) {
-        auto s=colorText(theme.colors[i]);
-        if(!writeValue(key,i,&s)){ok=false;break;}
+        auto color=colorText(theme.colors[i]);
+        if(!writeValue(key,i,&color)){ok=false;break;}
     }
     if(!ok) {
         bool undone=restoreValues(key,old);
-        message=undone?L"Scrittura fallita; colori precedenti ripristinati.":L"ERRORE: ripristino incompleto. Il backup e' in "+path;
+        message=undone?L"Scrittura fallita; colori precedenti ripristinati.":
+            L"ERRORE: ripristino parziale. Backup originale: "+path;
     } else {
         RegFlushKey(key);
-        message=L"Tema applicato a "+session.label+L". Backup salvato.";
+        message=L"Tema applicato a "+session.label+L". Il backup originale e' conservato.";
     }
     RegCloseKey(key);
     return ok;
 }
 bool restoreLastBackup(const Session& session, std::wstring& message) {
-    auto dir=backupDir(),glob=join(dir,L"backup-"+idForSession(session)+L"-*.wpb");
-    WIN32_FIND_DATAW d{};HANDLE h=FindFirstFileW(glob.c_str(),&d);
-    if(h==INVALID_HANDLE_VALUE){message=L"Nessun backup per questa sessione.";return false;}
-    std::wstring last;
-    do {if(!(d.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY) && (last.empty()||last<d.cFileName))last=d.cFileName;}
-    while(FindNextFileW(h,&d));
-    FindClose(h);
-    std::array<Existing,22> old;
-    if(last.empty()||!loadBackup(join(dir,last),session,old)){message=L"Backup non valido.";return false;}
+    const auto path=originalBackupPath(session);
+    std::array<Existing,22> original{};
+    if(!loadBackup(path,session,original)){
+        message=L"Backup originale assente o non valido per questa sessione.";return false;
+    }
     HKEY key=nullptr;
     LONG e=RegOpenKeyExW(HKEY_CURRENT_USER,regPath(session).c_str(),0,KEY_QUERY_VALUE|KEY_SET_VALUE,&key);
     if(e!=ERROR_SUCCESS){message=errorCode(L"Sessione non accessibile",e);return false;}
-    std::array<Existing,22> current;
-    if(!scanValues(key,current)){RegCloseKey(key);message=L"Impossibile leggere i colori attuali.";return false;}
-    // A separate safety snapshot is made before restoring, so restore is itself reversible.
-    auto safety=join(dir,backupName(session));
-    if(!writeTextUtf8(safety,backupText(session,current))){RegCloseKey(key);message=L"Salvataggio di sicurezza fallito.";return false;}
-    bool ok=restoreValues(key,old);
-    if(!ok)restoreValues(key,current);
+    std::array<Existing,22> before{};
+    if(!scanValues(key,before)){RegCloseKey(key);message=L"Impossibile leggere i colori attuali.";return false;}
+    bool ok=restoreValues(key,original);
+    if(!ok) {
+        const bool reversed=restoreValues(key,before);
+        message=reversed?L"Ripristino fallito; configurazione precedente conservata.":
+                         L"ERRORE: ripristino parziale. Backup originale: "+path;
+    } else message=L"Ripristinati i colori ORIGINALI di "+session.label+
+                    L". Il backup originale rimane disponibile.";
     RegCloseKey(key);
-    message=ok?L"Ripristinati i colori della sessione "+session.label:L"Errore durante il ripristino.";
     return ok;
 }
+
 } // namespace wp

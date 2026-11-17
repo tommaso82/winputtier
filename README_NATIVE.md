@@ -12,7 +12,7 @@ Lightweight native C++17 / Win32 theme manager for PuTTY sessions. No Python, .N
 - Import .reg palette files **as data only** (never execute/merge imported registry files).
 - Export a selected theme as a PuTTY-compatible .reg targeted at the selected session.
 - Apply a theme only to the selected PuTTY session, with a confirmation dialog.
-- **Automatic backup of the session's existing color values before every apply**; restore the latest backup of the selected session. The backup distinguishes missing values from defined values.
+- **Automatic backup of the session's existing color values before every apply**; restore the **original** colors of the selected session, even after applying multiple different themes. The original snapshot is never overwritten by later changes. The backup distinguishes missing values from defined values.
 - Browse and selectively download themes from GitHub. Local themes continue to work offline.
 - The original PuTTY default color palette is available without downloading any themes.
 
@@ -38,7 +38,7 @@ WinPuttier creates, on demand:
 
 **No login credentials, host settings, port, font or default PuTTY settings are modified by applying a theme.** Only the 22 Colour* registry values of the chosen session are changed.
 
-A backup is taken automatically before writing any colors. On a write failure the program attempts to roll back. Closing/reopening PuTTY may be necessary to see updated colors in already-open sessions.
+A single original backup is created before the first color change and is never overwritten. Restoring colors does not remove it. If previous builds left timestamped backups, the oldest one is migrated as the original. On a write failure the program attempts to roll back. Closing/reopening PuTTY may be necessary to see updated colors in already-open sessions.
 
 ## Build
 
@@ -57,7 +57,7 @@ GitHub Actions builds and tests with MSVC on windows-2022 and uploads the WinPut
 ## Safety and boundaries
 
 - Windows only; standard PuTTY registry-backed sessions only (portable configurations stored in files are not supported yet).
-- The backup button restores the **latest** snapshot for the selected session. Older snapshots remain on disk but are not yet selectable through the GUI.
+- The restore button always restores the **first/original** color snapshot for the selected session. No new history is generated. The original backup remains available after restore.
 - Importing or downloading a theme does **not** immediately change a PuTTY session.
 - Imported themes must contain all 22 valid RGB values (0–255).
 - User-specific and downloaded themes are not embedded in the EXE.

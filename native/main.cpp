@@ -250,8 +250,8 @@ void apply() {
 void restore() {
     int si=sessionIndex();
     if(si<0||si>=(int)gSessionList.size()){status(L"Seleziona una sessione.");return;}
-    std::wstring prompt=L"Ripristinare l'ultimo backup dei colori della sessione '"+gSessionList[si].label+L"'?";
-    if(MessageBoxW(gWindow,prompt.c_str(),L"WinPuttier - Ripristino",MB_YESNO|MB_ICONQUESTION)!=IDYES)return;
+    std::wstring prompt=L"Ripristinare i colori ORIGINALI della sessione '"+gSessionList[si].label+L"'?";
+    if(MessageBoxW(gWindow,prompt.c_str(),L"WinPuttier - Ripristino originale",MB_YESNO|MB_ICONQUESTION)!=IDYES)return;
     std::wstring message;
     wp::restoreLastBackup(gSessionList[si],message);
     status(message);
@@ -279,7 +279,7 @@ LRESULT CALLBACK proc(HWND hwnd,UINT msg,WPARAM wpv,LPARAM lpv) {
         for(const auto* name:kColorNames)SendMessageW(gColors,CB_ADDSTRING,0,(LPARAM)name);
         SendMessageW(gColors,CB_SETCURSEL,2,0);
         gApply=button(L"Applica alla sessione selezionata",ID_APPLY);
-        gRestore=button(L"Ripristina ultimo backup",ID_RESTORE);
+        gRestore=button(L"Ripristina colori originali",ID_RESTORE);
         gStatus=control(L"STATIC",L"Pronto",0,ID_STATUS);
         wp::ensureDirs();
         loadSessions();
