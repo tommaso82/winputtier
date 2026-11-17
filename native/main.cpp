@@ -436,6 +436,7 @@ void savePersonalTheme(wp::Theme theme,bool afterSession=false){
     std::wstring error;
     if(!wp::saveCustomTheme(theme,path,error)){message(error);return;}
     gDirty=false;gThemeKey.clear();
+    gSelectedSource=L"Personali";
     reloadCatalog(keyOf(theme));
     message(L"Tema personale salvato: "+name+L". Nessuna modifica alle sessioni PuTTY.");
 }
@@ -517,7 +518,7 @@ LRESULT CALLBACK sourceWndProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
         SetWindowLongPtrW(wnd,GWLP_USERDATA,(LONG_PTR)editor);
         editor->window=wnd;
         auto labelControl=make(L"STATIC",
-            L"Una fonte per riga: Nome = URL HTTPS GitHub API /contents/... oppure raw GitHub .reg",
+            L"Una fonte per riga: Nome = link repository, cartella o file .reg su GitHub",
             0,0,0,wnd);
         move(labelControl,14,12,733,24);
         editor->input=make(L"EDIT",L"",WS_TABSTOP|ES_MULTILINE|ES_AUTOVSCROLL|WS_VSCROLL|

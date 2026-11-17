@@ -384,27 +384,55 @@ std::wstring sourceConfigText() {
     if(GetFileAttributesW(path.c_str())!=INVALID_FILE_ATTRIBUTES) return readText(path);
     return
        L"; WinPuttier - raccolte temi (modificabili)\r\n"
-       L"; Formato: Nome = URL GitHub API della cartella oppure URL HTTPS del singolo file .reg\r\n"
+       L"; Formato: Nome = link GitHub di repository/cartella/file .reg\r\n"
        L"[Sources]\r\n"
-       L"iTerm2-Color-Schemes = https://api.github.com/repos/mbadolato/iTerm2-Color-Schemes/contents/putty\r\n"
-       L"Pretty PuTTY = https://api.github.com/repos/jacek0x/pretty-putty/contents\r\n"
-       L"Dracula PuTTY = https://raw.githubusercontent.com/teeli/dracula-putty/master/dracula.reg\r\n"
-       L"AlexAkulov = https://api.github.com/repos/AlexAkulov/putty-color-themes/contents\r\n";
+       L"iTerm2-Color-Schemes = https://github.com/mbadolato/iTerm2-Color-Schemes/tree/master/putty\r\n"
+       L"Pretty PuTTY = https://github.com/jacek0x/pretty-putty\r\n"
+       L"Dracula PuTTY = https://github.com/teeli/dracula-putty/blob/master/dracula.reg\r\n"
+       L"AlexAkulov = https://github.com/AlexAkulov/putty-color-themes\r\n";
 }
 namespace {
-bool checkSourceUrl(const std::wstring& url) {
-    if(url.size()>1800) return false;
+std::wstring normalizeSourceUrl(const std::wstring& url) {
+    if(url.size()>1800||url.find_first_of(L" \t\r\n\\")!=std::wstring::npos)return {};
     const std::wstring api=L"https://api.github.com/repos/";
     const std::wstring raw=L"https://raw.githubusercontent.com/";
+    const std::wstring site=L"https://github.com/";
     if(url.compare(0,api.size(),api)==0) {
-        const auto pos=url.find(L"/contents",api.size());
-        return pos!=std::wstring::npos && pos>api.size()+2 && url.find(L'?',pos)==std::wstring::npos;
+        auto start=url.find(L"/contents",api.size());
+        if(start==std::wstring::npos||start<api.size()+3)return {};
+        return url;
     }
     if(url.compare(0,raw.size(),raw)==0) {
-        const auto suffix=url.rfind(L".reg");
-        return suffix==url.size()-4 && suffix>raw.size()+3;
+        if(url.size()>raw.size()+4&&url.compare(url.size()-4,4,L".reg")==0)return url;
+        return {};
     }
-    return false;
+    if(url.compare(0,site.size(),site)!=0)return {};
+    std::wstring path=url.substr(site.size());
+    while(!path.empty()&&path.back()==L'/')path.pop_back();
+    std::vector<std::wstring> parts;
+    std::wistringstream tokens(path);
+    std::wstring part;
+    while(std::getline(tokens,part,L'/')){
+        if(part.empty()||part==L"."||part==L".."||part.find_first_of(L"?#")!=std::wstring::npos)return {};
+        parts.push_back(part);
+    }
+    if(parts.size()<2)return {};
+    const std::wstring base=L"https://api.github.com/repos/"+parts[0]+L"/"+parts[1]+L"/contents";
+    if(parts.size()==2)return base;
+    if(parts.size()<4)return {};
+    std::wstring dir;
+    for(size_t i=4;i<parts.size();++i)dir+=L"/"+parts[i];
+    if(parts[2]==L"tree" && !parts[3].empty()) {
+        return base+dir+L"?ref="+parts[3];
+    }
+    if(parts[2]==L"blob" && !dir.empty() && dir.size()>4 &&
+       dir.compare(dir.size()-4,4,L".reg")==0) {
+        return raw+parts[0]+L"/"+parts[1]+L"/"+parts[3]+dir;
+    }
+    return {};
+}
+bool checkSourceUrl(const std::wstring& url) {
+    return !normalizeSourceUrl(url).empty();
 }
 bool parseSources(const std::wstring& input,std::vector<ThemeSource>& out,std::wstring& message) {
     out.clear();std::wistringstream stream(input);std::wstring line;
@@ -457,15 +485,16 @@ bool refreshCatalog(std::wstring& message) {
     std::vector<Theme> all;
     std::wstring errors;
     for(const auto& src:sources) {
-        if(src.url.rfind(L"https://raw.githubusercontent.com/",0)==0) {
-            auto begin=src.url.find_last_of(L'/');
-            std::wstring name=src.url.substr(begin+1);
+        const auto normalized=normalizeSourceUrl(src.url);
+        if(normalized.rfind(L"https://raw.githubusercontent.com/",0)==0) {
+            auto begin=normalized.find_last_of(L'/');
+            std::wstring name=normalized.substr(begin+1);
             if(name.size()>4)name.resize(name.size()-4);
-            all.push_back({name,src.name,src.url,{},false});
+            all.push_back({name,src.name,normalized,{},false});
             continue;
         }
         std::string body;std::wstring error;
-        if(!httpGet(src.url,body,error,6*1024*1024)) {
+        if(!httpGet(normalized,body,error,6*1024*1024)) {
             errors+=src.name+L": "+error+L"; ";continue;
         }
         auto list=parseContents(body,src.name);
