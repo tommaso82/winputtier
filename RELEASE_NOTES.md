@@ -1,25 +1,18 @@
-# WinPuttier 0.5.0
+# WinPuttier 0.5.1
 
-Native Windows theme manager for PuTTY sessions. **Windows 10/11, x64.**
+Native Windows PuTTY colour-theme manager for **Windows 10/11 x64**.
 
-## What's new
+## Improvements
 
-- **English and Italian UI in one executable.** WinPuttier starts in Italian on Italian-language Windows, and English on other installations.
-- **Language selector in the header.** Choose Italiano or English at any time. The selected language is remembered in the user's WinPuttier registry settings.
-- **Localized dialogs, status messages and ANSI preview** alongside the main controls. Theme and saved session names are kept as-is. Windows-provided dialogs follow the Windows language.
-- **No extra runtime or translation files.** The Windows executable remains portable.
+- Replaced the traditional language drop-down with a **compact IT | EN segmented selector** in the top-right header, matching WinPuttier's rounded design.
+- Click IT or EN to switch instantly, without opening a menu. The active language has a subtle blue highlight.
+- Keyboard-accessible buttons and DPI-aware rendering.
+- Retains all 0.5.0 functionality: bundled Italian/English translations, Windows-language detection, saved language preference, ANSI preview, theme management, and original-colour backups.
 
 ## Download
 
-Download **WinPuttier.exe** from the release assets below, then run it. No installation or Python runtime is needed.
+Download **WinPuttier.exe** from the release assets below. It is a **portable, unsigned** executable; no Python, .NET or installer required.
 
-The executable is **not code-signed**. To validate it, compare its SHA-256 digest with SHA256SUMS.txt, also attached to this release.
+Use **SHA256SUMS.txt** to verify the executable's checksum.
 
-## Previous capabilities
-
-- Browse and cache PuTTY colour schemes, customize the 22-colour palette and preview ANSI colours.
-- Apply a theme only to the selected saved PuTTY session.
-- Preserve and restore the original session colour values.
-- Import/export PuTTY .reg palettes, save custom themes, maintain favourites.
-
-The original Puttier author and theme creators are credited in the repository [README](https://github.com/tommaso82/winputtier#credits) and [CREDITS.md](https://github.com/tommaso82/winputtier/blob/main/CREDITS.md).
+Thanks to the original [Puttier project](https://github.com/anonimoanemico/puttier) and the theme authors credited in [CREDITS.md](https://github.com/tommaso82/winputtier/blob/main/CREDITS.md).

@@ -22,7 +22,7 @@ No installation, Python or .NET is needed. The executable is currently **unsigne
 
 ## Features
 
-- **English / Italiano:** detects the Windows display language on first launch, with a small language selector at the top right. Language changes take effect immediately; the choice is remembered. One executable includes both languages.
+- **English / Italiano:** detects the Windows display language on first launch, with a compact IT / EN segmented selector at the top right. Language changes take effect immediately; the choice is remembered. One executable includes both languages.
 - **Session-specific changes:** writes only PuTTY's `Colour0`–`Colour21` values for the selected session, leaving connection settings and credentials untouched.
 - **Integrated ANSI preview:** sample terminal output, PuTTY's special colours and 256 combinations of ANSI foreground and background colours.
 - **Colour editor:** 22 swatches, HEX input and a Windows RGB picker; save your edits as a personal theme or export a PuTTY-compatible `.reg` file.

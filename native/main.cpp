@@ -26,7 +26,7 @@ enum : int {
     ID_RELOAD=201, ID_SAVE_SESSION=202, ID_APPLY=203, ID_RESTORE=204,
     ID_REFRESH=205, ID_SOURCES=206, ID_IMPORT=207, ID_DOWNLOAD=208,
     ID_PICKER=209, ID_HEX_APPLY=210, ID_RESET=211, ID_SAVE_PERSONAL=212, ID_EXPORT=213,
-    ID_SWATCH_FIRST=500, ID_FAVORITE=215, ID_LANGUAGE=216,
+    ID_SWATCH_FIRST=500, ID_FAVORITE=215, ID_LANGUAGE_IT=216, ID_LANGUAGE_EN=217,
     ID_MODAL_EDIT=901, ID_MODAL_SAVE=902, ID_MODAL_CANCEL=903
 };
 constexpr UINT WM_SYNC_DONE=WM_APP+10;
@@ -40,7 +40,7 @@ const wchar_t* kColorNames[22]={
 };
 HWND gWindow=nullptr,gSessions=nullptr,gThemes=nullptr,gPreview=nullptr,gStatus=nullptr;
 HWND gSessionTitle=nullptr,gThemesTitle=nullptr,gPreviewTitle=nullptr,gPaletteTitle=nullptr,gSearchLabel=nullptr,gLibraryStats=nullptr;
-HWND gAppName=nullptr,gAppSub=nullptr,gFavoriteButton=nullptr,gLanguage=nullptr;
+HWND gAppName=nullptr,gAppSub=nullptr,gFavoriteButton=nullptr,gLanguageIt=nullptr,gLanguageEn=nullptr;
 HWND gSourceFilter=nullptr,gSearch=nullptr,gColorTitle=nullptr,gColorRgb=nullptr;
 HWND gHex=nullptr,gPersonalName=nullptr,gSwatches[22]{};
 HWND gReload=nullptr,gSaveSession=nullptr,gApply=nullptr,gRestore=nullptr;
@@ -164,7 +164,9 @@ void layout() {
  const int top=col.top,bottom=col.bottom;
  move(gAppName,pix(35),pix(9),pix(340),pix(31));
  move(gAppSub,pix(35),pix(39),W-pix(205),pix(23));
-  move(gLanguage,W-pix(140),pix(30),pix(120),pix(170));
+  // Compact, keyboard-accessible segmented IT / EN language selector.
+  move(gLanguageIt,W-pix(124),pix(32),pix(48),pix(26));
+  move(gLanguageEn,W-pix(73),pix(32),pix(48),pix(26));
 
  move(gSessionTitle,x1,top+pix(13),w1,pix(27));
  move(gSessions,x1,top+pix(48),w1,bottom-top-pix(230));
@@ -436,6 +438,38 @@ void drawButton(DRAWITEMSTRUCT* ds) {
     DrawTextW(ds->hDC,txt,-1,&r,DT_CENTER|DT_VCENTER|DT_SINGLELINE|DT_END_ELLIPSIS);
     SelectObject(ds->hDC,prior);
 }
+void drawLanguageSegment(DRAWITEMSTRUCT* ds) {
+    const bool italian=ds->CtlID==ID_LANGUAGE_IT;
+    const bool selected=italian?!wp::isEnglish():wp::isEnglish();
+    const bool pressed=(ds->itemState&ODS_SELECTED)!=0;
+    const bool focus=(ds->itemState&ODS_FOCUS)!=0;
+    RECT r=ds->rcItem;
+    HBRUSH white=CreateSolidBrush(RGB(255,255,255));
+    FillRect(ds->hDC,&r,white);
+    DeleteObject(white);
+    if(selected||pressed) {
+        HBRUSH face=CreateSolidBrush(pressed?RGB(211,226,250):RGB(228,238,253));
+        HPEN line=CreatePen(PS_SOLID,pix(1),RGB(207,224,248));
+        HGDIOBJ oldBrush=SelectObject(ds->hDC,face);
+        HGDIOBJ oldPen=SelectObject(ds->hDC,line);
+        RoundRect(ds->hDC,r.left+1,r.top+1,r.right-1,r.bottom-1,pix(9),pix(9));
+        SelectObject(ds->hDC,oldBrush);
+        SelectObject(ds->hDC,oldPen);
+        DeleteObject(face);
+        DeleteObject(line);
+    }
+    SetBkMode(ds->hDC,TRANSPARENT);
+    SetTextColor(ds->hDC,selected?RGB(33,91,170):RGB(105,119,140));
+    HGDIOBJ oldFont=SelectObject(ds->hDC,gSmallFont);
+    DrawTextW(ds->hDC,italian?L"IT":L"EN",-1,&r,
+              DT_CENTER|DT_VCENTER|DT_SINGLELINE);
+    SelectObject(ds->hDC,oldFont);
+    if(focus){
+        RECT indicator=r;
+        InflateRect(&indicator,-pix(4),-pix(3));
+        DrawFocusRect(ds->hDC,&indicator);
+    }
+}
 void paintChrome(HWND wnd) {
     PAINTSTRUCT ps{};
     HDC dc=BeginPaint(wnd,&ps);
@@ -458,6 +492,17 @@ void paintChrome(HWND wnd) {
         RECT bar{pix(18),pix(17),pix(23),pix(49)};
         HBRUSH blue=CreateSolidBrush(RGB(53,103,190));
         FillRect(dc,&bar,blue);DeleteObject(blue);
+        // Shared outline behind the two owner-drawn language buttons.
+        HBRUSH white=CreateSolidBrush(RGB(255,255,255));
+        HPEN frame=CreatePen(PS_SOLID,pix(1),RGB(211,221,236));
+        HGDIOBJ oldBrush=SelectObject(dc,white);
+        HGDIOBJ oldPen=SelectObject(dc,frame);
+        RoundRect(dc,r.right-pix(128),pix(28),r.right-pix(20),pix(62),
+                  pix(12),pix(12));
+        SelectObject(dc,oldBrush);
+        SelectObject(dc,oldPen);
+        DeleteObject(white);
+        DeleteObject(frame);
     }
     EndPaint(wnd,&ps);
 }
@@ -692,11 +737,9 @@ void createControls(){
     if(!gCardBrush)gCardBrush=CreateSolidBrush(RGB(255,255,255));
     rebuildFonts();
     gAppName=label(L"WinPuttier",8000);
-    gAppSub=label(L"PuTTY Theme Manager  ·  Libreria offline  ·  Versione 0.5.0",8010);
-    gLanguage=make(L"COMBOBOX",L"",WS_TABSTOP|CBS_DROPDOWNLIST,ID_LANGUAGE);
-    SendMessageW(gLanguage,CB_ADDSTRING,0,(LPARAM)L"Italiano");
-    SendMessageW(gLanguage,CB_ADDSTRING,0,(LPARAM)L"English");
-    SendMessageW(gLanguage,CB_SETCURSEL,wp::isEnglish()?1:0,0);
+    gAppSub=label(L"PuTTY Theme Manager  ·  Libreria offline  ·  Versione 0.5.1",8010);
+    gLanguageIt=button(L"IT",ID_LANGUAGE_IT);
+    gLanguageEn=button(L"EN",ID_LANGUAGE_EN);
     gSessionTitle=label(L"01   SESSIONI PuTTY",8001);
     gThemesTitle=label(L"02   LIBRERIA TEMI",8002);
     gPreviewTitle=label(L"03   ANTEPRIMA ANSI · SCORRI PER ESPLORARE",8003);
@@ -735,7 +778,7 @@ void createControls(){
 void refreshLanguage(){
     // Relabel controls in place; preserve session/theme selection and unsaved edits.
     const std::pair<HWND,const wchar_t*> labels[]={
-        {gAppSub,L"PuTTY Theme Manager  ·  Libreria offline  ·  Versione 0.5.0"},
+        {gAppSub,L"PuTTY Theme Manager  ·  Libreria offline  ·  Versione 0.5.1"},
         {gSessionTitle,L"01   SESSIONI PuTTY"},
         {gThemesTitle,L"02   LIBRERIA TEMI"},
         {gPreviewTitle,L"03   ANTEPRIMA ANSI · SCORRI PER ESPLORARE"},
@@ -813,6 +856,9 @@ LRESULT CALLBACK mainProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
         if(ds->CtlID>=ID_SWATCH_FIRST&&ds->CtlID<ID_SWATCH_FIRST+22){
             redrawSwatch(ds,(int)ds->CtlID-ID_SWATCH_FIRST);return TRUE;
         }
+        if(ds->CtlID==ID_LANGUAGE_IT||ds->CtlID==ID_LANGUAGE_EN){
+            drawLanguageSegment(ds);return TRUE;
+        }
         if(ds->CtlID>=201 && ds->CtlID<500) {drawButton(ds);return TRUE;}
         break;
     }
@@ -824,14 +870,13 @@ LRESULT CALLBACK mainProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
         if(id==ID_THEMES&&notification==LBN_SELCHANGE){
             applyThemeSelection();return 0;
         }
-        if(id==ID_LANGUAGE&&notification==CBN_SELCHANGE){
-            const int selected=(int)SendMessageW(gLanguage,CB_GETCURSEL,0,0);
-            if(selected==0||selected==1){
-                const bool english=selected==1;
-                if(english!=wp::isEnglish()){
-                    wp::setEnglish(english);
-                    refreshLanguage();
-                }
+        if((id==ID_LANGUAGE_IT||id==ID_LANGUAGE_EN)&&notification==BN_CLICKED){
+            const bool english=id==ID_LANGUAGE_EN;
+            if(english!=wp::isEnglish()){
+                wp::setEnglish(english);
+                refreshLanguage();
+                InvalidateRect(gLanguageIt,nullptr,TRUE);
+                InvalidateRect(gLanguageEn,nullptr,TRUE);
             }
             return 0;
         }
