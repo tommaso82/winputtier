@@ -197,7 +197,7 @@ void layout() {
 
  move(gPreviewTitle,x3,top+pix(13),w3,pix(26));
  const int previewY=top+pix(45);
- const int swY=bottom-pix(255);
+ const int swY=bottom-pix(271);
  const int pvHeight=swY-previewY-pix(39);
  move(gPreview,x3,previewY,w3-pix(16),std::max(pix(155),pvHeight));
  move(gScrollPreview,x3+w3-pix(14),previewY,pix(12),std::max(pix(155),pvHeight));
@@ -206,17 +206,17 @@ void layout() {
  for(int i=0;i<22;++i)
     move(gSwatches[i],x3+(i%11)*(swW+swGap),
          swY+(i/11)*pix(32),swW,pix(27));
- move(gColorTitle,x3,bottom-pix(184),w3,pix(20));
+ move(gColorTitle,x3,bottom-pix(199),w3,pix(20));
  const int editorGap=pix(8);
  const int editorHalf=(w3-editorGap)/2;
  const int editorRight=x3+editorHalf+editorGap;
  // Same two-column grid for RGB, HEX and their paired actions.
- move(gColorRgb,x3,bottom-pix(161),editorHalf,pix(19));
- move(gHex,x3+pix(9),bottom-pix(134),editorHalf-pix(18),pix(22));
- move(gHexApply,editorRight,bottom-pix(138),editorHalf,pix(29));
- move(gPicker,x3,bottom-pix(102),editorHalf,pix(29));
- move(gReset,editorRight,bottom-pix(102),editorHalf,pix(29));
- move(gPersonalName,x3+pix(9),bottom-pix(64),w3-pix(18),pix(22));
+ move(gColorRgb,x3,bottom-pix(176),editorHalf,pix(19));
+ move(gHex,x3+pix(9),bottom-pix(147),editorHalf-pix(18),pix(22));
+ move(gHexApply,editorRight,bottom-pix(151),editorHalf,pix(29));
+ move(gPicker,x3,bottom-pix(115),editorHalf,pix(29));
+ move(gReset,editorRight,bottom-pix(115),editorHalf,pix(29));
+ move(gPersonalName,x3+pix(9),bottom-pix(75),w3-pix(18),pix(20));
  move(gSavePersonal,x3,bottom-pix(45),(w3-pix(8))/2,pix(29));
  move(gExport,x3+(w3+pix(8))/2,bottom-pix(45),(w3-pix(8))/2,pix(29));
  move(gStatus,pix(20),H-pix(36),W-pix(40),pix(25));
@@ -607,8 +607,8 @@ void paintChrome(HWND wnd) {
         const int bottom=col.bottom,top=col.top;
         const int gap=pix(8),half=(w3-gap)/2;
         const RECT searchBox{x2,top+pix(105),x2+w2,top+pix(135)};
-        const RECT hexBox{x3,bottom-pix(138),x3+half,bottom-pix(109)};
-        const RECT nameBox{x3,bottom-pix(68),x3+w3,bottom-pix(40)};
+        const RECT hexBox{x3,bottom-pix(151),x3+half,bottom-pix(122)};
+        const RECT nameBox{x3,bottom-pix(79),x3+w3,bottom-pix(53)};
         paintRounded(dc,searchBox,RGB(255,255,255),RGB(210,223,241),pix(12));
         paintRounded(dc,hexBox,RGB(255,255,255),RGB(210,223,241),pix(12));
         paintRounded(dc,nameBox,RGB(255,255,255),RGB(210,223,241),pix(12));
@@ -881,7 +881,7 @@ void createControls(){
     if(!gCardBrush)gCardBrush=CreateSolidBrush(RGB(255,255,255));
     rebuildFonts();
     gAppName=label(L"WinPuttier",8000);
-    gAppSub=label(L"PuTTY Theme Manager  ·  Versione 0.6.2",8010);
+    gAppSub=label(L"PuTTY Theme Manager  ·  Versione 0.6.3",8010);
     gLanguageIt=button(L"IT",ID_LANGUAGE_IT);
     gLanguageEn=button(L"EN",ID_LANGUAGE_EN);
     gSessionTitle=label(L"01   SESSIONI PuTTY",8001);
@@ -925,7 +925,7 @@ void createControls(){
 void refreshLanguage(){
     // Relabel controls in place; preserve session/theme selection and unsaved edits.
     const std::pair<HWND,const wchar_t*> labels[]={
-        {gAppSub,L"PuTTY Theme Manager  ·  Versione 0.6.2"},
+        {gAppSub,L"PuTTY Theme Manager  ·  Versione 0.6.3"},
         {gSessionTitle,L"01   SESSIONI PuTTY"},
         {gThemesTitle,L"02   LIBRERIA TEMI"},
         {gPreviewTitle,L"03   ANTEPRIMA ANSI · SCORRI PER ESPLORARE"},
