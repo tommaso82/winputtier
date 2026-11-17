@@ -186,12 +186,15 @@ void layout() {
     move(gSwatches[i],x3+(i%11)*(swW+swGap),
          swY+(i/11)*pix(32),swW,pix(27));
  move(gColorTitle,x3,bottom-pix(184),w3,pix(20));
- move(gColorRgb,x3,bottom-pix(161),w3,pix(19));
- move(gHex,x3,bottom-pix(138),w3*42/100,pix(29));
- move(gHexApply,x3+w3*42/100+pix(7),bottom-pix(138),
-      w3-w3*42/100-pix(7),pix(29));
- move(gPicker,x3,bottom-pix(102),(w3-pix(8))/2,pix(29));
- move(gReset,x3+(w3+pix(8))/2,bottom-pix(102),(w3-pix(8))/2,pix(29));
+ const int editorGap=pix(8);
+ const int editorHalf=(w3-editorGap)/2;
+ const int editorRight=x3+editorHalf+editorGap;
+ // Same two-column grid for RGB, HEX and their paired actions.
+ move(gColorRgb,x3,bottom-pix(161),editorHalf,pix(19));
+ move(gHex,x3,bottom-pix(138),editorHalf,pix(29));
+ move(gHexApply,editorRight,bottom-pix(138),editorHalf,pix(29));
+ move(gPicker,x3,bottom-pix(102),editorHalf,pix(29));
+ move(gReset,editorRight,bottom-pix(102),editorHalf,pix(29));
  move(gPersonalName,x3,bottom-pix(68),w3,pix(28));
  move(gSavePersonal,x3,bottom-pix(35),(w3-pix(8))/2,pix(29));
  move(gExport,x3+(w3+pix(8))/2,bottom-pix(35),(w3-pix(8))/2,pix(29));
@@ -640,7 +643,7 @@ void rebuildFonts(){
     if(gTitleFont)DeleteObject(gTitleFont);
     if(gSectionFont)DeleteObject(gSectionFont);
     if(gSmallFont)DeleteObject(gSmallFont);
-    gFont=CreateFontW(-pix(13),0,0,0,FW_NORMAL,0,0,0,DEFAULT_CHARSET,
+    gFont=CreateFontW(-pix(13),0,0,0,FW_MEDIUM,0,0,0,DEFAULT_CHARSET,
         0,0,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI");
     gMono=CreateFontW(-pix(13),0,0,0,FW_NORMAL,0,0,0,DEFAULT_CHARSET,
         0,0,CLEARTYPE_QUALITY,FIXED_PITCH,L"Consolas");
@@ -648,7 +651,7 @@ void rebuildFonts(){
         0,0,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI");
     gSectionFont=CreateFontW(-pix(15),0,0,0,FW_SEMIBOLD,0,0,0,DEFAULT_CHARSET,
         0,0,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI");
-    gSmallFont=CreateFontW(-pix(12),0,0,0,FW_NORMAL,0,0,0,DEFAULT_CHARSET,
+    gSmallFont=CreateFontW(-pix(12),0,0,0,FW_MEDIUM,0,0,0,DEFAULT_CHARSET,
         0,0,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI");
     if(gWindow){
         EnumChildWindows(gWindow,[](HWND child,LPARAM)->BOOL{
@@ -845,7 +848,10 @@ int WINAPI wWinMain(HINSTANCE app,HINSTANCE,LPWSTR,int show){
     WNDCLASSEXW cls{};cls.cbSize=sizeof(cls);cls.hInstance=app;
     cls.lpfnWndProc=mainProc;cls.lpszClassName=L"WinPuttierNative";
     cls.hCursor=LoadCursorW(nullptr,IDC_ARROW);
-    cls.hIcon=LoadIconW(nullptr,IDI_APPLICATION);
+    cls.hIcon=LoadIconW(app,MAKEINTRESOURCEW(101));
+    if(!cls.hIcon)cls.hIcon=LoadIconW(nullptr,IDI_APPLICATION);
+    cls.hIconSm=(HICON)LoadImageW(app,MAKEINTRESOURCEW(101),IMAGE_ICON,
+        GetSystemMetrics(SM_CXSMICON),GetSystemMetrics(SM_CYSMICON),LR_DEFAULTCOLOR);
     cls.hbrBackground=(HBRUSH)(COLOR_WINDOW+1);
     if(!RegisterClassExW(&cls))return 1;
     HWND wnd=CreateWindowExW(0,cls.lpszClassName,L"WinPuttier - Theme Manager",
