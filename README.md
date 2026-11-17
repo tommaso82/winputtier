@@ -108,13 +108,23 @@ The standalone binary is at `build\Release\WinPuttier.exe`. The project uses C++
 - Theme sync requires network access to configured GitHub sources; saved palettes remain usable offline.
 - Builds are currently **unsigned**; please download only from this repository's own Actions runs.
 
-## Project and acknowledgments
+## Contributors & acknowledgments
 
-**Project creator, direction, testing and maintenance:** [Tommaso (@tommaso82)](https://github.com/tommaso82).  
-**AI-assisted Win32 implementation and review:** OpenAI ChatGPT (GPT-6). ChatGPT is credited as an AI development assistant, not as a human or GitHub account.  
-**Original project:** [Puttier by anonimoanemico](https://github.com/anonimoanemico/puttier). WinPuttier is a native Windows adaptation of that open-source project, not the same Python program.
+**The people and projects behind WinPuttier deserve visible credit:**
 
-The original Puttier source is kept under [`puttier/`](puttier/) for reference. Its historical README is preserved at [`docs/README-puttier-original.md`](docs/README-puttier-original.md). The original [CC0-1.0 LICENSE](LICENSE), [theme-author credits](CREDITS.md), and [WinPuttier source credits](CREDITS_NATIVE.md) are preserved. Thanks to all upstream palette authors and maintainers; their respective licensing terms continue to apply to downloaded themes.
+- **[Tommaso (@tommaso82)](https://github.com/tommaso82)** — creator, maintainer, design and testing.
+- **OpenAI ChatGPT (GPT-6)** — AI-assisted C++/Win32 development, interface iteration and documentation. AI assistant, not a human/GitHub account.
+- **[anonimoanemico](https://github.com/anonimoanemico)** — author of the original **[Puttier](https://github.com/anonimoanemico/puttier)** Python project (CC0 1.0).
+- **[mbadolato](https://github.com/mbadolato)** — **[iTerm2-Color-Schemes](https://github.com/mbadolato/iTerm2-Color-Schemes)**, credited by the original Puttier.
+- **[jacektrocinski](https://github.com/jacektrocinski)** — **[pretty-putty](https://github.com/jacektrocinski/pretty-putty)**, credited by the original Puttier.
+- **[teeli](https://github.com/teeli)** — **[dracula-putty](https://github.com/teeli/dracula-putty)**, credited by the original Puttier.
+- **[AlexAkulov](https://github.com/AlexAkulov)** — **[putty-color-themes](https://github.com/AlexAkulov/putty-color-themes)**, additional WinPuttier source.
+
+**[Meet the contributors and see full acknowledgments](CONTRIBUTORS.md)** · **[Read all original theme-author credits](CREDITS.md)**
+
+The long original [theme-credit list](CREDITS.md), original [README](docs/README-puttier-original.md), [Python source](puttier/) and [CC0-1.0 license](LICENSE) are retained. Hundreds of individual theme authors are individually acknowledged in that original credit list, which remains unchanged.
+
+WinPuttier is independent from PuTTY itself. GitHub's automated contributors panel is based on commits and GitHub identities; ChatGPT has no such account, so it is credited accurately in the project documentation instead.
 
 ---
 

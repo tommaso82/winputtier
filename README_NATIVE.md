@@ -6,6 +6,9 @@ Lightweight native C++17 / Win32 theme manager for PuTTY sessions. No Python, .N
 
 ## Project credits
 
+See **[CONTRIBUTORS.md](CONTRIBUTORS.md)** for the full list, including all three original Puttier theme sources and the unchanged **[CREDITS.md](CREDITS.md)** with individual theme-author acknowledgments.
+
+
 - **Creator, project owner and maintainer:** [Tommaso (@tommaso82)](https://github.com/tommaso82).
 - **Native C++ development assistance:** OpenAI ChatGPT (GPT-6), AI-assisted coding and review.
 - **Based on:** [Puttier by anonimoanemico](https://github.com/anonimoanemico/puttier), CC0 1.0.
