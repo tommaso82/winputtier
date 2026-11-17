@@ -165,7 +165,7 @@ bool httpGet(const std::wstring& url, std::string& out, std::wstring& error, DWO
     p.lpszExtraInfo=extra; p.dwExtraInfoLength=_countof(extra);
     if(!WinHttpCrackUrl(url.c_str(),0,0,&p) || p.nScheme!=INTERNET_SCHEME_HTTPS) { error=L"URL HTTPS non valido"; return false; }
     using H=std::unique_ptr<void,decltype(&WinHttpCloseHandle)>;
-    H h(WinHttpOpen(L"WinPuttier/0.1 (Windows)",WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,WINHTTP_NO_PROXY_NAME,WINHTTP_NO_PROXY_BYPASS,0),WinHttpCloseHandle);
+    H h(WinHttpOpen(L"WinPuttier/0.5 (Windows)",WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,WINHTTP_NO_PROXY_NAME,WINHTTP_NO_PROXY_BYPASS,0),WinHttpCloseHandle);
     if(!h){error=L"WinHTTP non disponibile";return false;}
     DWORD timeout=20000;
     WinHttpSetTimeouts(h.get(),10000,10000,timeout,timeout);

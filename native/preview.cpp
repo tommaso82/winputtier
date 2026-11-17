@@ -1,4 +1,5 @@
 #include "preview.h"
+#include "i18n.h"
 #include <algorithm>
 #include <cmath>
 #include <cwchar>
@@ -50,10 +51,11 @@ void frame(HDC dc,int x,int y,int w,int h,COLORREF c,int thickness=1) {
  DeleteObject(b);
 }
 int string(HDC dc,int x,int y,const wchar_t* value,COLORREF color,HFONT font){
+ const auto translated=wp::tr(value);
  auto old=SelectObject(dc,font);SetBkMode(dc,TRANSPARENT);SetTextColor(dc,color);
- const int n=(int)wcslen(value);
- TextOutW(dc,x,y,value,n);
- SIZE size{};GetTextExtentPoint32W(dc,value,n,&size);SelectObject(dc,old);
+ const int n=static_cast<int>(translated.size());
+ TextOutW(dc,x,y,translated.c_str(),n);
+ SIZE size{};GetTextExtentPoint32W(dc,translated.c_str(),n,&size);SelectObject(dc,old);
  return x+size.cx;
 }
 void title(HDC dc,const State& st,int x,int y,const wchar_t* name,int width){

@@ -1,4 +1,5 @@
 #include "core.h"
+#include "i18n.h"
 #include "preview.h"
 #include <windows.h>
 #include <commctrl.h>
@@ -10,6 +11,7 @@
 #include <set>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 #pragma comment(lib, "comctl32.lib")
 #pragma comment(lib, "comdlg32.lib")
@@ -24,7 +26,7 @@ enum : int {
     ID_RELOAD=201, ID_SAVE_SESSION=202, ID_APPLY=203, ID_RESTORE=204,
     ID_REFRESH=205, ID_SOURCES=206, ID_IMPORT=207, ID_DOWNLOAD=208,
     ID_PICKER=209, ID_HEX_APPLY=210, ID_RESET=211, ID_SAVE_PERSONAL=212, ID_EXPORT=213,
-    ID_SWATCH_FIRST=500, ID_FAVORITE=215,
+    ID_SWATCH_FIRST=500, ID_FAVORITE=215, ID_LANGUAGE=216,
     ID_MODAL_EDIT=901, ID_MODAL_SAVE=902, ID_MODAL_CANCEL=903
 };
 constexpr UINT WM_SYNC_DONE=WM_APP+10;
@@ -38,7 +40,7 @@ const wchar_t* kColorNames[22]={
 };
 HWND gWindow=nullptr,gSessions=nullptr,gThemes=nullptr,gPreview=nullptr,gStatus=nullptr;
 HWND gSessionTitle=nullptr,gThemesTitle=nullptr,gPreviewTitle=nullptr,gPaletteTitle=nullptr,gSearchLabel=nullptr,gLibraryStats=nullptr;
-HWND gAppName=nullptr,gAppSub=nullptr,gFavoriteButton=nullptr;
+HWND gAppName=nullptr,gAppSub=nullptr,gFavoriteButton=nullptr,gLanguage=nullptr;
 HWND gSourceFilter=nullptr,gSearch=nullptr,gColorTitle=nullptr,gColorRgb=nullptr;
 HWND gHex=nullptr,gPersonalName=nullptr,gSwatches[22]{};
 HWND gReload=nullptr,gSaveSession=nullptr,gApply=nullptr,gRestore=nullptr;
@@ -48,6 +50,7 @@ HFONT gFont=nullptr,gMono=nullptr,gTitleFont=nullptr,gSectionFont=nullptr,gSmall
 HBRUSH gBackgroundBrush=nullptr,gCardBrush=nullptr;
 int gDpi=96;
 std::vector<std::wstring> gFavorites;
+std::vector<std::wstring> gFilterSources;
 int pix(int n){return MulDiv(n,gDpi,96);}
 
 std::vector<wp::Session> gSessionItems;
@@ -88,9 +91,16 @@ wp::Theme* chosenCatalogTheme(){
     if(index<0||index>=(int)gVisibleThemes.size())return nullptr;
     return &gAllThemes[gVisibleThemes[index]];
 }
-void message(const std::wstring& m){if(gStatus)SetWindowTextW(gStatus,m.c_str());}
+void localizedText(HWND h,const std::wstring& text){
+    if(!h)return;
+    const auto localized=wp::tr(text);
+    SetWindowTextW(h,localized.c_str());
+}
+void message(const std::wstring& m){localizedText(gStatus,m);}
 HWND make(const wchar_t* klass,const wchar_t* label,DWORD style,int id,DWORD ex=0,HWND owner=nullptr){
-    HWND h=CreateWindowExW(ex,klass,label,WS_CHILD|WS_VISIBLE|style,0,0,100,25,
+    const bool visibleText=wcscmp(klass,L"STATIC")==0 || wcscmp(klass,L"BUTTON")==0;
+    const std::wstring localized=visibleText?wp::tr(label):std::wstring(label);
+    HWND h=CreateWindowExW(ex,klass,localized.c_str(),WS_CHILD|WS_VISIBLE|style,0,0,100,25,
                            owner?owner:gWindow,(HMENU)(INT_PTR)id,GetModuleHandleW(nullptr),nullptr);
     if(h&&gFont)SendMessageW(h,WM_SETFONT,(WPARAM)gFont,TRUE);
     return h;
@@ -153,7 +163,8 @@ void layout() {
  const int w1=col.leftWidth-2*pad,w2=col.midWidth-2*pad,w3=col.rightWidth-2*pad;
  const int top=col.top,bottom=col.bottom;
  move(gAppName,pix(35),pix(9),pix(340),pix(31));
- move(gAppSub,pix(35),pix(39),W-pix(53),pix(23));
+ move(gAppSub,pix(35),pix(39),W-pix(205),pix(23));
+  move(gLanguage,W-pix(140),pix(30),pix(120),pix(170));
 
  move(gSessionTitle,x1,top+pix(13),w1,pix(27));
  move(gSessions,x1,top+pix(48),w1,bottom-top-pix(230));
@@ -206,7 +217,9 @@ bool filePicker(bool save,std::wstring& filename,const std::wstring& suggested=L
     if(!suggested.empty())wcsncpy_s(value,suggested.c_str(),_TRUNCATE);
     OPENFILENAMEW opt{};opt.lStructSize=sizeof(opt);opt.hwndOwner=gWindow;
     opt.lpstrFile=value;opt.nMaxFile=_countof(value);
-    opt.lpstrFilter=L"Temi PuTTY (*.reg)\0*.reg\0Tutti i file (*.*)\0*.*\0";
+    opt.lpstrFilter=wp::isEnglish()?
+        L"PuTTY themes (*.reg)\0*.reg\0All files (*.*)\0*.*\0":
+        L"Temi PuTTY (*.reg)\0*.reg\0Tutti i file (*.*)\0*.*\0";
     opt.lpstrDefExt=L"reg";
     opt.Flags=OFN_EXPLORER|OFN_PATHMUSTEXIST|(save?OFN_OVERWRITEPROMPT:OFN_FILEMUSTEXIST);
     BOOL yes=save?GetSaveFileNameW(&opt):GetOpenFileNameW(&opt);
@@ -239,15 +252,15 @@ void refreshColorEditor(){
     for(auto sw:gSwatches)EnableWindow(sw,usable);
     if(usable){
         const auto& c=gSelectedTheme.colors[gSelectedColor];
-        std::wstring name=L"Colore "+std::to_wstring(gSelectedColor)+L" - "+kColorNames[gSelectedColor];
-        if(gDirty)name+=L" (modificato)";
+        std::wstring name=wp::tr(L"Colore ")+std::to_wstring(gSelectedColor)+L" - "+wp::tr(kColorNames[gSelectedColor]);
+        if(gDirty)name+=wp::tr(L" (modificato)");
         SetWindowTextW(gColorTitle,name.c_str());
         SetWindowTextW(gHex,hexOf(c).c_str());
         auto rgbText=L"RGB: "+std::to_wstring(c.r)+L", "+std::to_wstring(c.g)+L", "+std::to_wstring(c.b);
         SetWindowTextW(gColorRgb,rgbText.c_str());
     } else{
-        SetWindowTextW(gColorTitle,L"Seleziona un tema disponibile");
-        SetWindowTextW(gColorRgb,L"I colori si modificano senza cambiare PuTTY.");
+        localizedText(gColorTitle,L"Seleziona un tema disponibile");
+        localizedText(gColorRgb,L"I colori si modificano senza cambiare PuTTY.");
         SetWindowTextW(gHex,L"");
     }
     for(auto sw:gSwatches)InvalidateRect(sw,nullptr,TRUE);
@@ -259,7 +272,7 @@ void refreshColorEditor(){
     }
     if(gFavoriteButton) {
         const bool fav=gHaveTheme&&wp::isFavorite(gSelectedTheme,gFavorites);
-        SetWindowTextW(gFavoriteButton,fav?L"★ Rimuovi preferito":L"☆ Aggiungi preferito");
+        localizedText(gFavoriteButton,fav?L"★ Rimuovi preferito":L"☆ Aggiungi preferito");
         InvalidateRect(gFavoriteButton,nullptr,TRUE);
     }
 }
@@ -292,10 +305,16 @@ void populateSourceFilter(){
     for(auto& src:wp::configuredSources())names.insert(src.name);
     for(auto& t:gAllThemes)names.insert(t.source);
     SendMessageW(gSourceFilter,CB_RESETCONTENT,0,0);
-    SendMessageW(gSourceFilter,CB_ADDSTRING,0,(LPARAM)L"Tutte");
-    for(auto& n:names)SendMessageW(gSourceFilter,CB_ADDSTRING,0,(LPARAM)n.c_str());
-    int index=(int)SendMessageW(gSourceFilter,CB_FINDSTRINGEXACT,(WPARAM)-1,(LPARAM)was.c_str());
-    if(index==CB_ERR){index=0;was=L"Tutte";}
+    gFilterSources.clear();
+    gFilterSources.push_back(L"Tutte");
+    for(const auto& n:names)gFilterSources.push_back(n);
+    int index=0;
+    for(size_t i=0;i<gFilterSources.size();++i){
+        const auto display=wp::tr(gFilterSources[i]);
+        SendMessageW(gSourceFilter,CB_ADDSTRING,0,(LPARAM)display.c_str());
+        if(gFilterSources[i]==was)index=static_cast<int>(i);
+    }
+    if(gFilterSources[index]!=was)was=L"Tutte";
     gSelectedSource=was;
     SendMessageW(gSourceFilter,CB_SETCURSEL,index,0);
 }
@@ -349,7 +368,7 @@ void filterThemes(const std::wstring& preferred=L""){
         const auto haystack=toLower(t.name+L" "+t.source);
         if(!query.empty()&&haystack.find(query)==std::wstring::npos)continue;
         std::wstring name=(wp::isFavorite(t,gFavorites)?L"★  ":L"")+t.name;
-        if(gSelectedSource==L"Tutte")name+=L"  -  "+t.source;
+        if(gSelectedSource==L"Tutte")name+=L"  -  "+wp::tr(t.source);
         SendMessageW(gThemes,LB_ADDSTRING,0,(LPARAM)name.c_str());
         gVisibleThemes.push_back(i);
         if(keyOf(t)==target)focus=(int)gVisibleThemes.size()-1;
@@ -373,8 +392,8 @@ void reloadCatalog(const std::wstring& focus=L"") {
     gFavorites=wp::favoriteIds();
     populateSourceFilter();
     filterThemes(target);
-    SetWindowTextW(gLibraryStats,(std::to_wstring(gAllThemes.size())+
-                    L" temi disponibili offline · cerca o filtra per raccolta").c_str());
+    localizedText(gLibraryStats,std::to_wstring(gAllThemes.size())+
+                  L" temi disponibili offline · cerca o filtra per raccolta");
 }
 void redrawSwatch(DRAWITEMSTRUCT* ds,int index){
     RECT bounds=ds->rcItem;
@@ -467,7 +486,8 @@ void setEditedColor(const wp::Color& value){
 void applyHex(){
     wp::Color value{};
     if(!decodeHex(textOf(gHex),value)){
-        MessageBoxW(gWindow,L"Inserisci un valore HEX valido, ad esempio #7AA2F7.",L"Colore non valido",MB_OK|MB_ICONWARNING);
+        MessageBoxW(gWindow,wp::tr(L"Inserisci un valore HEX valido, ad esempio #7AA2F7.").c_str(),
+                    wp::tr(L"Colore non valido").c_str(),MB_OK|MB_ICONWARNING);
         return;
     }
     setEditedColor(value);
@@ -505,7 +525,7 @@ void savePersonalTheme(wp::Theme theme,bool afterSession=false){
     name=wp::safeFileName(name);
     const auto path=wp::customDir()+L"\\"+name+L".reg";
     if(GetFileAttributesW(path.c_str())!=INVALID_FILE_ATTRIBUTES){
-        if(MessageBoxW(gWindow,L"Esiste gia' un tema personale con questo nome. Sovrascriverlo?",
+        if(MessageBoxW(gWindow,wp::tr(L"Esiste gia' un tema personale con questo nome. Sovrascriverlo?").c_str(),
                        L"WinPuttier",MB_YESNO|MB_ICONQUESTION)!=IDYES)return;
     }
     theme.name=name;theme.source=L"Personali";theme.remoteUrl=L"";theme.available=true;
@@ -542,9 +562,9 @@ void applyToSession(){
     if(!session||!gHaveTheme||!gSelectedTheme.available){
         message(L"Seleziona una sessione e un tema disponibile.");return;
     }
-    auto question=L"Applicare il tema '"+gSelectedTheme.name+L"' alla sessione '"+session->label+
-        L"'?\n\nIl backup dei colori originali viene preservato. Nessun'altra sessione sara' modificata.";
-    if(MessageBoxW(gWindow,question.c_str(),L"Conferma applicazione tema",MB_YESNO|MB_ICONQUESTION)!=IDYES)return;
+    auto question=wp::tr(L"Applicare il tema '")+gSelectedTheme.name+wp::tr(L"' alla sessione '")+session->label+
+        wp::tr(L"'?\n\nIl backup dei colori originali viene preservato. Nessun'altra sessione sara' modificata.");
+    if(MessageBoxW(gWindow,question.c_str(),wp::tr(L"Conferma applicazione tema").c_str(),MB_YESNO|MB_ICONQUESTION)!=IDYES)return;
     std::wstring feedback;
     wp::applyTheme(*session,gSelectedTheme,feedback);
     message(feedback);
@@ -552,8 +572,8 @@ void applyToSession(){
 void restoreOriginal(){
     const auto* session=chosenSession();
     if(!session)return;
-    if(MessageBoxW(gWindow,(L"Ripristinare i colori ORIGINALI di '"+session->label+
-        L"'?\nIl backup originale rimarra' conservato.").c_str(),L"Ripristina colori originali",
+    if(MessageBoxW(gWindow,(wp::tr(L"Ripristinare i colori ORIGINALI di '")+session->label+
+        wp::tr(L"'?\nIl backup originale rimarra' conservato.")).c_str(),wp::tr(L"Ripristina colori originali").c_str(),
         MB_YESNO|MB_ICONQUESTION)!=IDYES)return;
     std::wstring feedback;
     wp::restoreLastBackup(*session,feedback);
@@ -589,7 +609,8 @@ LRESULT CALLBACK sourceWndProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
         editor->input=make(L"EDIT",L"",WS_TABSTOP|ES_MULTILINE|ES_AUTOVSCROLL|WS_VSCROLL|
                 ES_WANTRETURN|ES_NOHIDESEL,ID_MODAL_EDIT,WS_EX_CLIENTEDGE,wnd);
         move(editor->input,14,43,740,351);
-        SetWindowTextW(editor->input,wp::sourceConfigText().c_str());
+        const auto config=wp::tr(wp::sourceConfigText());
+        SetWindowTextW(editor->input,config.c_str());
         auto save=make(L"BUTTON",L"Salva fonti",WS_TABSTOP|BS_DEFPUSHBUTTON,ID_MODAL_SAVE,0,wnd);
         auto cancel=make(L"BUTTON",L"Annulla",WS_TABSTOP|BS_PUSHBUTTON,ID_MODAL_CANCEL,0,wnd);
         move(save,513,411,114,32);move(cancel,638,411,116,32);
@@ -600,7 +621,7 @@ LRESULT CALLBACK sourceWndProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
         if(LOWORD(w)==ID_MODAL_SAVE){
             std::wstring feedback;
             if(!wp::updateSourceConfig(textOf(editor->input),feedback)){
-                MessageBoxW(wnd,feedback.c_str(),L"Configurazione non valida",MB_OK|MB_ICONERROR);
+                MessageBoxW(wnd,wp::tr(feedback).c_str(),wp::tr(L"Configurazione non valida").c_str(),MB_OK|MB_ICONERROR);
                 return 0;
             }
             editor->saved=true;DestroyWindow(wnd);return 0;
@@ -625,7 +646,7 @@ void manageSources(){
     int x=owner.left+std::max(0,static_cast<int>(((owner.right-owner.left)-790)/2));
     int y=owner.top+std::max(0,static_cast<int>(((owner.bottom-owner.top)-500)/2));
     HWND dialog=CreateWindowExW(WS_EX_DLGMODALFRAME,L"WinPuttierSourcesDialog",
-          L"WinPuttier - Gestisci fonti",WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU,
+          wp::tr(L"WinPuttier - Gestisci fonti").c_str(),WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU,
           x,y,790,500,gWindow,nullptr,GetModuleHandleW(nullptr),&modal);
     if(!dialog)return;
     EnableWindow(gWindow,FALSE);
@@ -671,7 +692,11 @@ void createControls(){
     if(!gCardBrush)gCardBrush=CreateSolidBrush(RGB(255,255,255));
     rebuildFonts();
     gAppName=label(L"WinPuttier",8000);
-    gAppSub=label(L"PuTTY Theme Manager  ·  Libreria offline  ·  Versione 0.4.2",8010);
+    gAppSub=label(L"PuTTY Theme Manager  ·  Libreria offline  ·  Versione 0.5.0",8010);
+    gLanguage=make(L"COMBOBOX",L"",WS_TABSTOP|CBS_DROPDOWNLIST,ID_LANGUAGE);
+    SendMessageW(gLanguage,CB_ADDSTRING,0,(LPARAM)L"Italiano");
+    SendMessageW(gLanguage,CB_ADDSTRING,0,(LPARAM)L"English");
+    SendMessageW(gLanguage,CB_SETCURSEL,wp::isEnglish()?1:0,0);
     gSessionTitle=label(L"01   SESSIONI PuTTY",8001);
     gThemesTitle=label(L"02   LIBRERIA TEMI",8002);
     gPreviewTitle=label(L"03   ANTEPRIMA ANSI · SCORRI PER ESPLORARE",8003);
@@ -682,7 +707,7 @@ void createControls(){
     gSearchLabel=label(L"RICERCA TEMI",8007);
     gLibraryStats=label(L"Libreria locale",8008);
     gSearch=edit(L"",ID_SEARCH);
-    SendMessageW(gSearch,EM_SETCUEBANNER,TRUE,(LPARAM)L"Digita il nome del tema...");
+    SendMessageW(gSearch,EM_SETCUEBANNER,TRUE,(LPARAM)wp::tr(L"Digita il nome del tema...").c_str());
     gReload=button(L"Rileggi sessioni",ID_RELOAD);
     gSaveSession=button(L"Crea tema dalla sessione",ID_SAVE_SESSION);
     gApply=button(L"Applica tema",ID_APPLY);
@@ -701,11 +726,45 @@ void createControls(){
     gPicker=button(L"Selettore RGB",ID_PICKER);
     gReset=button(L"Annulla",ID_RESET);
     gPersonalName=edit(L"",ID_PERSONAL_NAME);
-    SendMessageW(gPersonalName,EM_SETCUEBANNER,TRUE,(LPARAM)L"Nome del nuovo tema...");
+    SendMessageW(gPersonalName,EM_SETCUEBANNER,TRUE,(LPARAM)wp::tr(L"Nome del nuovo tema...").c_str());
     gSavePersonal=button(L"Salva personale",ID_SAVE_PERSONAL);
     gExport=button(L"Esporta .reg",ID_EXPORT);
     gStatus=label(L"Pronto",ID_STATUS);
     rebuildFonts();
+}
+void refreshLanguage(){
+    // Relabel controls in place; preserve session/theme selection and unsaved edits.
+    const std::pair<HWND,const wchar_t*> labels[]={
+        {gAppSub,L"PuTTY Theme Manager  ·  Libreria offline  ·  Versione 0.5.0"},
+        {gSessionTitle,L"01   SESSIONI PuTTY"},
+        {gThemesTitle,L"02   LIBRERIA TEMI"},
+        {gPreviewTitle,L"03   ANTEPRIMA ANSI · SCORRI PER ESPLORARE"},
+        {gPaletteTitle,L"EDITOR PALETTE    ·    22 colori"},
+        {gSearchLabel,L"RICERCA TEMI"},
+        {gReload,L"Rileggi sessioni"},
+        {gSaveSession,L"Crea tema dalla sessione"},
+        {gApply,L"Applica tema"},
+        {gRestore,L"Ripristina colori originali"},
+        {gRefresh,L"Sincronizza libreria"},
+        {gSources,L"Gestisci fonti"},
+        {gImport,L"Importa .reg"},
+        {gHexApply,L"Conferma HEX"},
+        {gPicker,L"Selettore RGB"},
+        {gReset,L"Annulla"},
+        {gSavePersonal,L"Salva personale"},
+        {gExport,L"Esporta .reg"}
+    };
+    for(const auto& entry:labels)localizedText(entry.first,entry.second);
+    SendMessageW(gSearch,EM_SETCUEBANNER,TRUE,
+        (LPARAM)wp::tr(L"Digita il nome del tema...").c_str());
+    SendMessageW(gPersonalName,EM_SETCUEBANNER,TRUE,
+        (LPARAM)wp::tr(L"Nome del nuovo tema...").c_str());
+    populateSourceFilter();
+    filterThemes(gThemeKey);
+    localizedText(gLibraryStats,std::to_wstring(gAllThemes.size())+
+        L" temi disponibili offline · cerca o filtra per raccolta");
+    refreshColorEditor();
+    message(L"Seleziona la sessione a sinistra e il tema al centro; l'anteprima non modifica PuTTY.");
 }
 LRESULT CALLBACK mainProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
     switch(msg){
@@ -765,13 +824,21 @@ LRESULT CALLBACK mainProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
         if(id==ID_THEMES&&notification==LBN_SELCHANGE){
             applyThemeSelection();return 0;
         }
+        if(id==ID_LANGUAGE&&notification==CBN_SELCHANGE){
+            const int selected=(int)SendMessageW(gLanguage,CB_GETCURSEL,0,0);
+            if(selected==0||selected==1){
+                const bool english=selected==1;
+                if(english!=wp::isEnglish()){
+                    wp::setEnglish(english);
+                    refreshLanguage();
+                }
+            }
+            return 0;
+        }
         if(id==ID_SOURCE_FILTER&&notification==CBN_SELCHANGE){
             int ix=(int)SendMessageW(gSourceFilter,CB_GETCURSEL,0,0);
-            if(ix>=0){
-                int n=(int)SendMessageW(gSourceFilter,CB_GETLBTEXTLEN,ix,0);
-                std::wstring choice((size_t)n+1,L'\0');
-                SendMessageW(gSourceFilter,CB_GETLBTEXT,ix,(LPARAM)&choice[0]);
-                choice.resize(n);gSelectedSource=choice;
+            if(ix>=0&&ix<(int)gFilterSources.size()){
+                gSelectedSource=gFilterSources[ix];
                 gDirty=false;gThemeKey.clear();filterThemes();
             }
             return 0;
@@ -843,6 +910,7 @@ LRESULT CALLBACK mainProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
 int WINAPI wWinMain(HINSTANCE app,HINSTANCE,LPWSTR,int show){
     // Windows 10: monitor-aware native rendering, never bitmap-stretch controls.
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+    wp::initLanguage();
     INITCOMMONCONTROLSEX common{};common.dwSize=sizeof(common);common.dwICC=ICC_WIN95_CLASSES;
     InitCommonControlsEx(&common);
     WNDCLASSEXW cls{};cls.cbSize=sizeof(cls);cls.hInstance=app;

@@ -1,4 +1,5 @@
 #include "core.h"
+#include "i18n.h"
 #include <iostream>
 #include <string>
 
@@ -102,6 +103,18 @@ int main() {
     if(settings.boldMode!=1 || settings.useSystemColours || !settings.ansiColours) {
         std::cerr<<"Incorrect default PuTTY color settings\n";return 17;
     }
-    std::wcout<<L"Native theme identity, favorites, source and backup tests passed\n";
+    // Pure localisation checks: tests must not modify the user's language preference.
+    if(wp::translate(L"Applica tema",true)!=L"Apply theme" ||
+       wp::translate(L"Applica tema",false)!=L"Applica tema" ||
+       wp::translate(L"★ Preferiti",true)!=L"★ Favourites" ||
+       wp::translate(L"Personali",true)!=L"Personal" ||
+       wp::translate(L"Seleziona uno dei 22 colori",true)!=L"Select one of the 22 colours" ||
+       wp::translate(L"4 temi disponibili offline · cerca o filtra per raccolta",true)!=
+           L"4 themes available offline · search or filter by collection" ||
+       wp::translate(L"03  ANSI 16 COLORI / CODICI SGR",true)!=
+           L"03  ANSI 16 COLOURS / SGR CODES") {
+        std::cerr<<"Locale translation regression\n";return 18;
+    }
+    std::wcout<<L"Native theme identity, favorites, source, localisation and backup tests passed\n";
     return 0;
 }

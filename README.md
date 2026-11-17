@@ -13,21 +13,24 @@ A lightweight, native Windows application for managing **PuTTY colour schemes**.
 
 ## Get started
 
-1. Download **WinPuttier-Windows-x64** from the [latest successful Windows build](https://github.com/tommaso82/winputtier/actions/workflows/windows-native.yml?query=branch%3Amain) (under **Artifacts**) and extract `WinPuttier.exe`.
+1. Download **WinPuttier.exe** from the [latest GitHub Release](https://github.com/tommaso82/winputtier/releases/latest).
 2. Run it on a Windows computer with at least one saved PuTTY session.
 3. Click **Sincronizza libreria** to download the available themes, then select a session on the left and a theme in the centre.
 4. Check the preview and click **Applica tema** to apply its 22 colours. Use **Ripristina colori originali** to restore the original session palette.
 
-No installation, Python or .NET is needed. The executable is currently **unsigned**; GitHub Actions artifacts can require sign-in and expire.
+No installation, Python or .NET is needed. The executable is currently **unsigned**. For test builds, see [GitHub Actions](https://github.com/tommaso82/winputtier/actions/workflows/windows-native.yml).
 
 ## Features
 
+- **English / Italiano:** detects the Windows display language on first launch, with a small language selector at the top right. Language changes take effect immediately; the choice is remembered. One executable includes both languages.
 - **Session-specific changes:** writes only PuTTY's `Colour0`–`Colour21` values for the selected session, leaving connection settings and credentials untouched.
 - **Integrated ANSI preview:** sample terminal output, PuTTY's special colours and 256 combinations of ANSI foreground and background colours.
 - **Colour editor:** 22 swatches, HEX input and a Windows RGB picker; save your edits as a personal theme or export a PuTTY-compatible `.reg` file.
 - **Offline library:** synchronize individual `.reg` palette files from configurable GitHub sources, then use cached themes without an Internet connection. Browse, search and save favorites.
 - **Original-colour restoration:** on the first change to a session, WinPuttier saves the existing colours and keeps that backup when you apply other themes.
 - **Safe import:** reads `.reg` colour files as data; it does not execute them or merge them into the Windows registry.
+
+Theme and session names are never translated. Windows-provided dialogs (such as the RGB colour picker) use the Windows display language.
 
 The preview is a **colour reference**, not a complete PuTTY terminal emulator. Terminal settings such as ANSI colours, bold text and system colours can affect the appearance of an actual session.
 
