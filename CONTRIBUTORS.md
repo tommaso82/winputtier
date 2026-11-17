@@ -36,8 +36,12 @@ Please see **[the complete original list of theme credits →](CREDITS.md)**; it
 
 The theme repositories are maintained independently. Themes downloaded at runtime retain their upstream authorship and respective licensing conditions; WinPuttier does not claim copyright over them.
 
-## GitHub's automatic Contributors list
+## GitHub's Contributors panel and AI co-authorship
 
-GitHub generates the **Contributors** panel from Git commit authors and associated GitHub accounts. A repository document cannot register an AI assistant as a GitHub user, and we do not invent an account or identity for ChatGPT. This document and the README provide accurate public attribution without misrepresenting GitHub authorship.
+Alongside these project credits, GitHub supports **`Co-authored-by` commit trailers**: they associate contributors with an existing GitHub identity when the email in the trailer belongs to that account.
+
+Our Git history now includes attribution to **ChatGPT via the real [ChatGPT Codex Connector GitHub App](https://github.com/apps/chatgpt-codex-connector)**. This is the OpenAI-provided integration account, **not** a made-up personal GitHub profile or a claim that the bot wrote the original Puttier or third-party color schemes.
+
+GitHub controls how and when co-authors appear in its automatic Contributors panel. The explicit human and upstream credits in this file remain the authoritative attribution of roles and sources.
 
 Thank you to the original authors and everyone who makes free and open-source software possible.
