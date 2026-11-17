@@ -1,99 +1,51 @@
 # WinPuttier
 
-**A fast, native Windows theme manager for PuTTY.** Browse hundreds of terminal color schemes, inspect their full ANSI palette, customize any of PuTTY's 22 colors, and apply a theme to exactly the saved session you choose.
+A lightweight, native Windows application for managing **PuTTY colour schemes**. Preview and edit a theme, then apply it to a specific saved PuTTY session. WinPuttier keeps a backup of that session's original colours so you can restore them later.
 
 [![Windows build](https://github.com/tommaso82/winputtier/actions/workflows/windows-native.yml/badge.svg?branch=main)](https://github.com/tommaso82/winputtier/actions/workflows/windows-native.yml?query=branch%3Amain)
-![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-2d6bc0)
-![Native C++](https://img.shields.io/badge/native-C%2B%2B17%20%2F%20Win32-2d6bc0)
-[![License: CC0](https://img.shields.io/badge/license-CC0--1.0-lightgrey)](LICENSE)
+[![License: CC0-1.0](https://img.shields.io/badge/license-CC0--1.0-lightgrey)](LICENSE)
 
-No Python, .NET, installer, account, or third-party runtime is required. Just one **WinPuttier.exe** for Windows x64.
+**Windows 10/11 · x64 · C++17 / Win32 · standalone executable**
 
-**Created and technically led by [Tommaso (@tommaso82)](https://github.com/tommaso82), with [ChatGPT (GPT-6)](https://chatgpt.com/) as AI development collaborator for the native C++/Win32 implementation, GUI and tooling.**
+![WinPuttier interface overview](docs/winputtier-interface.svg)
 
-![WinPuttier – native Windows interface](docs/winputtier-interface.svg)
+*Illustration of the interface with example session names; not a live screenshot.*
 
-*Illustrated interface overview based on a real WinPuttier 0.4.x Windows screenshot; example session names are used to protect the owner's configuration.*
+## Get started
 
-## Download and start
+1. Download **WinPuttier-Windows-x64** from the [latest successful Windows build](https://github.com/tommaso82/winputtier/actions/workflows/windows-native.yml?query=branch%3Amain) (under **Artifacts**) and extract `WinPuttier.exe`.
+2. Run it on a Windows computer with at least one saved PuTTY session.
+3. Click **Sincronizza libreria** to download the available themes, then select a session on the left and a theme in the centre.
+4. Check the preview and click **Applica tema** to apply its 22 colours. Use **Ripristina colori originali** to restore the original session palette.
 
-1. Open the **[latest successful Windows build](https://github.com/tommaso82/winputtier/actions/workflows/windows-native.yml?query=branch%3Amain)**.
-2. Under **Artifacts**, download **WinPuttier-Windows-x64** and extract the ZIP.
-3. Run **WinPuttier.exe** on Windows 10 or 11 with PuTTY sessions already saved.
+No installation, Python or .NET is needed. The executable is currently **unsigned**; GitHub Actions artifacts can require sign-in and expire.
 
-The executable is portable and requires **no installation**. GitHub Actions artifacts may require GitHub sign-in and expire; this project does not yet publish signed releases.
+## Features
 
-### Primo utilizzo (italiano)
+- **Session-specific changes:** writes only PuTTY's `Colour0`–`Colour21` values for the selected session, leaving connection settings and credentials untouched.
+- **Integrated ANSI preview:** sample terminal output, PuTTY's special colours and 256 combinations of ANSI foreground and background colours.
+- **Colour editor:** 22 swatches, HEX input and a Windows RGB picker; save your edits as a personal theme or export a PuTTY-compatible `.reg` file.
+- **Offline library:** synchronize individual `.reg` palette files from configurable GitHub sources, then use cached themes without an Internet connection. Browse, search and save favorites.
+- **Original-colour restoration:** on the first change to a session, WinPuttier saves the existing colours and keeps that backup when you apply other themes.
+- **Safe import:** reads `.reg` colour files as data; it does not execute them or merge them into the Windows registry.
 
-Apri WinPuttier, premi **Sincronizza libreria** per scaricare i temi **.reg** dalle fonti configurate, scegli una **sessione PuTTY** nella colonna sinistra e un **tema** al centro. Esamina l'anteprima ANSI a destra e premi **Applica tema** soltanto quando sei soddisfatto. Il programma salva automaticamente i **colori originali** della sessione prima della prima modifica: **Ripristina colori originali** li recupera anche dopo aver provato molti temi diversi.
+The preview is a **colour reference**, not a complete PuTTY terminal emulator. Terminal settings such as ANSI colours, bold text and system colours can affect the appearance of an actual session.
 
-Scegliere un tema, modificarne l'anteprima o salvarlo come personale **non cambia PuTTY**: soltanto **Applica tema** scrive i colori nella sessione selezionata.
+### Sources
 
-## What you get
+The default catalog includes themes from [iTerm2-Color-Schemes](https://github.com/mbadolato/iTerm2-Color-Schemes), [pretty-putty](https://github.com/jacek0x/pretty-putty), [dracula-putty](https://github.com/teeli/dracula-putty) and [AlexAkulov/putty-color-themes](https://github.com/AlexAkulov/putty-color-themes). WinPuttier downloads themes from their respective repositories instead of bundling them in the executable. Availability and licensing remain subject to the upstream projects.
 
-| Feature | Description |
-| --- | --- |
-| **Precise per-session changes** | Edit only the selected session's PuTTY registry colors, `Colour0`–`Colour21`; don't touch server, login, port or other settings. |
-| **Integrated ANSI preview** | Scroll through a Linux terminal example, PuTTY's six special colors, sixteen ANSI swatches, and **256 text/background combinations**. |
-| **Live palette editor** | Select any of the 22 swatches, edit by **HEX** or the native **RGB** picker, and undo unsaved edits. |
-| **Original-color backup** | Automatically preserve each session's first/original colors, including missing registry values; restore them later without overwriting the backup. |
-| **Offline theme library** | **Sincronizza libreria** downloads only individual **.reg** files—never ZIP archives—then caches them. Subsequent syncs reuse unchanged files where revision metadata is available. |
-| **Editable sources** | Add, change or remove GitHub repository, folder or single-`.reg` URLs from the **Gestisci fonti** dialog. |
-| **Favorites and filtering** | Star themes, filter by source or favorites, and search by name. Favorites persist across restarts and syncs. |
-| **Personal themes** | Save an edited palette or **Crea tema dalla sessione** to turn an existing session's colors into a reusable personal theme. |
-| **Safe import/export** | Import a `.reg` as palette data **without executing it**; export a selected theme as a session-specific PuTTY `.reg`. |
-| **HiDPI Windows UI** | Three resizable columns, native controls, and per-monitor DPI-aware rendering. |
+## Backups and data
 
-### Built-in theme sources
+Files are stored under `%LOCALAPPDATA%\WinPuttier\`: downloaded palettes in `cache\`, personal themes in `themes\`, preferences and catalog metadata alongside them, and the original session snapshots in `backups\`.
 
-WinPuttier starts with the original project's sources and the additional collection requested for this port:
+The original backup is retained after restoration. **Keep the `backups` folder** if you may need to undo colour changes. Reopen any PuTTY window that was already running to pick up changed saved-session colours.
 
-- [iTerm2-Color-Schemes — PuTTY themes](https://github.com/mbadolato/iTerm2-Color-Schemes/tree/master/putty)
-- [pretty-putty](https://github.com/jacek0x/pretty-putty)
-- [dracula-putty](https://github.com/teeli/dracula-putty)
-- [AlexAkulov/putty-color-themes](https://github.com/AlexAkulov/putty-color-themes)
+WinPuttier currently supports conventional PuTTY sessions stored in the Windows registry. Alternative portable PuTTY configurations may not be detected. It changes colours only; it does not modify other session settings.
 
-Availability and number of themes depend on these independently maintained projects. WinPuttier doesn't bundle their collections with the EXE; themes are downloaded on demand through **Sincronizza libreria**. The original PuTTY default palette is built in and works without Internet.
+## Build
 
-## Buttons at a glance
-
-| Area | Action | Result |
-| --- | --- | --- |
-| Sessions | **Rileggi sessioni** | Refresh saved sessions from the registry. |
-| Sessions | **Crea tema dalla sessione** | Save the chosen session's current palette as a personal theme. |
-| Sessions | **Applica tema** | Confirm and write the current preview palette to the chosen session, preserving the original backup. |
-| Sessions | **Ripristina colori originali** | Restore the original palette of that session, not merely the previously applied theme. |
-| Library | **Sincronizza libreria** | Update the catalog and cache the sources' `.reg` files for offline use. |
-| Library | **Gestisci fonti** | Edit the list of GitHub theme sources. |
-| Library | **Importa .reg** | Add a local PuTTY palette to personal themes without merging it into the registry. |
-| Library | **☆ Aggiungi preferito** | Add/remove the selected theme from the saved favorites list. |
-| Editor | **Conferma HEX** / **Selettore RGB** | Change the chosen color in the preview only. |
-| Editor | **Annulla** | Discard unsaved palette edits. |
-| Editor | **Salva personale** | Save the current palette to the personal library. |
-| Editor | **Esporta .reg** | Produce a PuTTY-compatible registry file targeting the selected session. |
-
-**Important:** PuTTY settings such as bold-as-color, ANSI colors and system colors can affect what a real terminal displays. WinPuttier reads those settings to guide its preview, but does not alter them. Existing open PuTTY windows may need to be reopened to pick up changed saved-session colors.
-
-## Where your data lives
-
-All downloaded files, personal palettes, preferences and original backups stay under:
-
-`%LOCALAPPDATA%\WinPuttier\\`
-
-| Path | Purpose |
-| --- | --- |
-| `themes\\` | Personal and imported `.reg` palettes |
-| `cache\\` | Downloaded PuTTY `.reg` palettes |
-| `backups\\` | Original per-session color snapshots (`.wpb`) |
-| `favorites.tsv` | Theme favorites |
-| `sources.ini` | Editable GitHub sources |
-| `catalog.tsv` / `sync-index.tsv` | Theme catalog and incremental sync metadata |
-
-Backups are **per session**, created before the first color change by WinPuttier, and **never overwritten** by applying later themes. Do not delete the `backups` directory if you want to retain the ability to restore original colors.
-
-## Build from source
-
-Requires Windows, CMake and Visual Studio 2019 or newer with the **Desktop development with C++** workload.
+Requires CMake and Visual Studio 2019 or newer with the **Desktop development with C++** workload. On Windows with Visual Studio 2022:
 
 ```powershell
 cmake -S . -B build -G "Visual Studio 17 2022" -A x64
@@ -101,36 +53,15 @@ cmake --build build --config Release
 ctest --test-dir build -C Release --output-on-failure
 ```
 
-The standalone binary is at `build\Release\WinPuttier.exe`. The project uses C++17, native Win32, WinHTTP and the MSVC static runtime. [GitHub Actions](.github/workflows/windows-native.yml) builds and tests it on Windows automatically. A Visual Studio 2019 generator can also be used.
+The executable is created at `build\Release\WinPuttier.exe`. The same build and tests run in [GitHub Actions](.github/workflows/windows-native.yml). See [additional technical details](README_NATIVE.md).
 
-### Limitations
+## Credits
 
-- Windows only; supports PuTTY sessions saved in the normal **Windows registry**, not every portable PuTTY variant.
-- This program edits *colors*, not fonts, terminal behavior, SSH credentials or connection settings.
-- Theme sync requires network access to configured GitHub sources; saved palettes remain usable offline.
-- Builds are currently **unsigned**; please download only from this repository's own Actions runs.
+**[Tommaso (@tommaso82)](https://github.com/tommaso82)** — creator and technical lead.  
+**[ChatGPT (GPT-6)](https://chatgpt.com/)** — AI-assisted development of the native Windows implementation and documentation.
 
-## Contributors & acknowledgments
+WinPuttier is based on [Puttier by anonimoanemico](https://github.com/anonimoanemico/puttier), released under [CC0-1.0](LICENSE). The original Python sources are retained for reference.
 
-WinPuttier is a **human–AI development collaboration**, with complementary roles:
+The original theme-source acknowledgments and the individual theme-author credits are preserved in [CONTRIBUTORS.md](CONTRIBUTORS.md) and the complete original [CREDITS.md](CREDITS.md). Thank you to the maintainers and creators of the underlying themes.
 
-- **[Tommaso (@tommaso82)](https://github.com/tommaso82)** — **Creator & Technical Lead**: project vision, software architecture and design direction, feature decisions, Windows testing and maintenance.
-- **[ChatGPT (GPT-6)](https://chatgpt.com/)** — **AI development collaborator**: native C++17/Win32 implementation, GUI development, debugging, CI/testing workflows and technical documentation. Credited for substantive engineering work, while remaining an AI system rather than a human contributor.
-
-**Original Puttier and theme authors** (whose work made this possible):
-
-- **[anonimoanemico](https://github.com/anonimoanemico)** — author of the original **[Puttier](https://github.com/anonimoanemico/puttier)** Python project (CC0 1.0).
-- **[mbadolato](https://github.com/mbadolato)** — **[iTerm2-Color-Schemes](https://github.com/mbadolato/iTerm2-Color-Schemes)**, credited by the original Puttier.
-- **[jacektrocinski](https://github.com/jacektrocinski)** — **[pretty-putty](https://github.com/jacektrocinski/pretty-putty)**, credited by the original Puttier.
-- **[teeli](https://github.com/teeli)** — **[dracula-putty](https://github.com/teeli/dracula-putty)**, credited by the original Puttier.
-- **[AlexAkulov](https://github.com/AlexAkulov)** — **[putty-color-themes](https://github.com/AlexAkulov/putty-color-themes)**, additional WinPuttier source.
-
-**[Meet the contributors and see full acknowledgments](CONTRIBUTORS.md)** · **[Read all original theme-author credits](CREDITS.md)**
-
-The long original [theme-credit list](CREDITS.md), original [README](docs/README-puttier-original.md), [Python source](puttier/) and [CC0-1.0 license](LICENSE) are retained. Hundreds of individual theme authors are individually acknowledged in that original credit list, which remains unchanged.
-
-WinPuttier is independent from PuTTY itself. ChatGPT's engineering role is also recorded through a **Co-authored-by** trailer referencing the official ChatGPT Codex Connector bot in [this commit](https://github.com/tommaso82/winputtier/commit/15dcc1151669ac213931f2a02a78fc7855f77e36). GitHub controls whether that identity appears in its automatic Contributors panel.
-
----
-
-*WinPuttier is an independent community project and is not affiliated with or endorsed by the PuTTY project.*
+*Independent community project; not affiliated with or endorsed by the PuTTY project.*
