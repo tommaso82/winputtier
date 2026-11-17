@@ -3,8 +3,7 @@
 #include <windows.h>
 
 namespace wp {
-// Native, scrollable 22-color terminal preview with two complete ANSI 16x16
-// foreground/background matrices and explicitly labeled special colors.
-void showExpandedPreview(HWND owner, const Theme& theme, int selectedColor);
-void updateExpandedPreview(const Theme& theme, int selectedColor);
+HWND createInlinePreview(HWND parent,int controlId);
+void updateInlinePreview(HWND preview,const Theme& theme,int selected,
+                         const SessionAppearance& appearance);
 }

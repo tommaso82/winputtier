@@ -12,6 +12,7 @@
 #include <atomic>
 #include <thread>
 #include <unordered_map>
+#include <set>
 
 #pragma comment(lib, "winhttp.lib")
 #pragma comment(lib, "shell32.lib")
@@ -251,7 +252,19 @@ std::wstring trim(std::wstring s) {
     return s.substr(first);
 }
 std::wstring folderThemePath(const std::wstring& folder, const std::wstring& source, const std::wstring& name) {
-    return join(folder,safeFileName(source+L"__"+name)+L".reg");
+    // Deterministic filename from the *original* theme identity, not a lossy
+    // Windows-safe display name. Colon and underscore must never alias.
+    uint64_t hash=14695981039346656037ULL;
+    const std::wstring id=source+L"\t"+name;
+    for(wchar_t c:id) { hash^=static_cast<uint16_t>(c);hash*=1099511628211ULL; }
+    wchar_t hex[24]{};
+    swprintf_s(hex,L"%016llx",static_cast<unsigned long long>(hash));
+    auto stem=safeFileName(name);
+    if(stem.size()>66)stem.resize(66);
+    return join(folder,safeFileName(source)+L"__"+stem+L"__"+hex+L".reg");
+}
+std::wstring legacyCacheFile(const std::wstring& source,const std::wstring& name){
+    return join(cacheDir(),safeFileName(source+L"__"+name)+L".reg");
 }
 } // namespace
 
@@ -298,6 +311,63 @@ std::vector<Session> sessions() {
     std::sort(result.begin(),result.end(),[](const Session& a,const Session& b){return _wcsicmp(a.label.c_str(),b.label.c_str())<0;});
     return result;
 }
+SessionAppearance sessionAppearance(const Session& session) {
+    SessionAppearance result;
+    HKEY key=nullptr;
+    if(RegOpenKeyExW(HKEY_CURRENT_USER,regPath(session).c_str(),0,KEY_QUERY_VALUE,&key)!=ERROR_SUCCESS)
+        return result;
+    auto getValue=[key](const wchar_t* name,DWORD initial){
+        DWORD value=initial, size=sizeof(value),type=0;
+        if(RegQueryValueExW(key,name,nullptr,&type,(BYTE*)&value,&size)!=ERROR_SUCCESS ||
+           type!=REG_DWORD || size!=sizeof(value))return initial;
+        return value;
+    };
+    const auto bold=getValue(L"BoldAsColour",1);
+    result.boldMode=bold<=2?(int)bold:1;
+    result.useSystemColours=getValue(L"UseSystemColours",0)!=0;
+    result.ansiColours=getValue(L"ANSIColour",1)!=0;
+    RegCloseKey(key);
+    return result;
+}
+std::wstring normalizedPath(std::wstring path){
+    std::transform(path.begin(),path.end(),path.begin(),towlower);
+    return path;
+}
+std::wstring cacheFilePath(const Theme& theme) {
+    return folderThemePath(cacheDir(),theme.source,theme.name);
+}
+std::wstring themeId(const Theme& theme){
+    return theme.source+L"\t"+theme.name;
+}
+std::vector<std::wstring> favoriteIds(){
+    std::vector<std::wstring> out;
+    std::wistringstream stream(readText(join(dataDir(),L"favorites.tsv")));
+    std::wstring line;
+    while(std::getline(stream,line)){
+        if(!line.empty()&&line.find(L'\t')!=std::wstring::npos)
+            out.push_back(line);
+    }
+    return out;
+}
+bool isFavorite(const Theme& theme,const std::vector<std::wstring>& favorites){
+    return std::find(favorites.begin(),favorites.end(),themeId(theme))!=favorites.end();
+}
+bool setFavorite(const Theme& theme,bool favorite){
+    if(!ensureDirs())return false;
+    auto ids=favoriteIds();
+    const auto id=themeId(theme);
+    ids.erase(std::remove(ids.begin(),ids.end(),id),ids.end());
+    if(favorite)ids.push_back(id);
+    std::wstring output;
+    for(const auto& item:ids)output+=item+L"\n";
+    const auto temp=join(dataDir(),L"favorites.tmp");
+    if(!writeTextUtf8(temp,output))return false;
+    if(!MoveFileExW(temp.c_str(),join(dataDir(),L"favorites.tsv").c_str(),
+                    MOVEFILE_REPLACE_EXISTING|MOVEFILE_WRITE_THROUGH)){
+        DeleteFileW(temp.c_str());return false;
+    }
+    return true;
+}
 bool parseReg(const std::wstring& contents, Theme& theme) {
     std::wistringstream in(contents);std::wstring line;
     Palette colors{};std::array<bool,22> seen{};
@@ -340,26 +410,57 @@ bool saveCustomTheme(const Theme& theme, const std::wstring& path, std::wstring&
 std::vector<Theme> localThemes() {
     std::vector<Theme> out;
     out.push_back({L"Default (PuTTY)",L"Integrato",L"",defaultPalette(),true});
-    for(const auto& source : {std::pair<std::wstring,std::wstring>{customDir(),L"Personali"},{cacheDir(),L"Scaricato"}}) {
+    // Personal themes are always separate and are NEVER touched by syncing.
+    {
         WIN32_FIND_DATAW d{};
-        auto spec=join(source.first,L"*.reg");
-        HANDLE h=FindFirstFileW(spec.c_str(),&d);
-        if(h==INVALID_HANDLE_VALUE)continue;
+        HANDLE finder=FindFirstFileW(join(customDir(),L"*.reg").c_str(),&d);
+        if(finder!=INVALID_HANDLE_VALUE){
+            do {
+                if(d.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY)continue;
+                Theme theme;theme.name=d.cFileName;
+                if(theme.name.size()>4)theme.name.resize(theme.name.size()-4);
+                theme.source=L"Personali";
+                if(readRegFile(join(customDir(),d.cFileName),theme))out.push_back(std::move(theme));
+            } while(FindNextFileW(finder,&d));
+            FindClose(finder);
+        }
+    }
+    std::set<std::wstring> matched;
+    for(auto& theme:remoteCatalog()){
+        const auto canonical=folderThemePath(cacheDir(),theme.source,theme.name);
+        auto legacy=legacyCacheFile(theme.source,theme.name);
+        Theme checked;
+        bool good=readRegFile(canonical,checked);
+        if(!good&&readRegFile(legacy,checked)){
+            // Move existing 0.3 caches into unambiguous, stable filenames.
+            if(MoveFileExW(legacy.c_str(),canonical.c_str(),MOVEFILE_WRITE_THROUGH))
+                good=readRegFile(canonical,checked);
+            else {
+                // A readable legacy file still works offline; never delete it.
+                good=true;
+            }
+        }
+        if(!good)continue;
+        theme.colors=checked.colors;
+        theme.available=true;
+        matched.insert(normalizedPath(canonical));
+        matched.insert(normalizedPath(legacy));
+        out.push_back(std::move(theme));
+    }
+    // Keep downloaded files if their source has been removed or is now offline.
+    WIN32_FIND_DATAW d{};
+    HANDLE finder=FindFirstFileW(join(cacheDir(),L"*.reg").c_str(),&d);
+    if(finder!=INVALID_HANDLE_VALUE){
         do {
             if(d.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY)continue;
+            const auto path=join(cacheDir(),d.cFileName);
+            if(matched.count(normalizedPath(path)))continue;
             Theme theme;theme.name=d.cFileName;
             if(theme.name.size()>4)theme.name.resize(theme.name.size()-4);
-            theme.source=source.second;
-            if (source.second == L"Scaricato") {
-                const size_t delimiter = theme.name.find(L"__");
-                if (delimiter != std::wstring::npos) {
-                    theme.source = theme.name.substr(0, delimiter);
-                    theme.name.erase(0, delimiter + 2);
-                }
-            }
-            if(readRegFile(join(source.first,d.cFileName),theme))out.push_back(std::move(theme));
-        }while(FindNextFileW(h,&d));
-        FindClose(h);
+            theme.source=L"Archivio locale";
+            if(readRegFile(path,theme))out.push_back(std::move(theme));
+        }while(FindNextFileW(finder,&d));
+        FindClose(finder);
     }
     return out;
 }

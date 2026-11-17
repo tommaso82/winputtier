@@ -24,7 +24,7 @@ enum : int {
     ID_RELOAD=201, ID_SAVE_SESSION=202, ID_APPLY=203, ID_RESTORE=204,
     ID_REFRESH=205, ID_SOURCES=206, ID_IMPORT=207, ID_DOWNLOAD=208,
     ID_PICKER=209, ID_HEX_APPLY=210, ID_RESET=211, ID_SAVE_PERSONAL=212, ID_EXPORT=213,
-    ID_SWATCH_FIRST=500, ID_PREVIEW_EXPANDED=304,
+    ID_SWATCH_FIRST=500, ID_FAVORITE=215,
     ID_MODAL_EDIT=901, ID_MODAL_SAVE=902, ID_MODAL_CANCEL=903
 };
 constexpr UINT WM_SYNC_DONE=WM_APP+10;
@@ -37,13 +37,19 @@ const wchar_t* kColorNames[22]={
     L"Ciano",L"Ciano brillante",L"Bianco",L"Bianco brillante"
 };
 HWND gWindow=nullptr,gSessions=nullptr,gThemes=nullptr,gPreview=nullptr,gStatus=nullptr;
-HWND gSessionTitle=nullptr,gThemesTitle=nullptr,gPreviewTitle=nullptr,gPaletteTitle=nullptr,gSearchLabel=nullptr,gLibraryStats=nullptr,gPreviewExpanded=nullptr;
+HWND gSessionTitle=nullptr,gThemesTitle=nullptr,gPreviewTitle=nullptr,gPaletteTitle=nullptr,gSearchLabel=nullptr,gLibraryStats=nullptr;
+HWND gAppName=nullptr,gAppSub=nullptr,gFavoriteButton=nullptr;
 HWND gSourceFilter=nullptr,gSearch=nullptr,gColorTitle=nullptr,gColorRgb=nullptr;
 HWND gHex=nullptr,gPersonalName=nullptr,gSwatches[22]{};
 HWND gReload=nullptr,gSaveSession=nullptr,gApply=nullptr,gRestore=nullptr;
 HWND gRefresh=nullptr,gSources=nullptr,gImport=nullptr;
 HWND gPicker=nullptr,gHexApply=nullptr,gReset=nullptr,gSavePersonal=nullptr,gExport=nullptr;
-HFONT gFont=nullptr,gMono=nullptr;
+HFONT gFont=nullptr,gMono=nullptr,gTitleFont=nullptr,gSectionFont=nullptr,gSmallFont=nullptr;
+HBRUSH gBackgroundBrush=nullptr,gCardBrush=nullptr;
+int gDpi=96;
+std::vector<std::wstring> gFavorites;
+int pix(int n){return MulDiv(n,gDpi,96);}
+
 std::vector<wp::Session> gSessionItems;
 std::vector<wp::Theme> gAllThemes;
 std::vector<size_t> gVisibleThemes;
@@ -90,61 +96,73 @@ HWND make(const wchar_t* klass,const wchar_t* label,DWORD style,int id,DWORD ex=
     return h;
 }
 HWND label(const wchar_t* label,int id){return make(L"STATIC",label,0,id);}
-HWND button(const wchar_t* label,int id){return make(L"BUTTON",label,WS_TABSTOP|BS_PUSHBUTTON,id);}
+HWND button(const wchar_t* label,int id){return make(L"BUTTON",label,WS_TABSTOP|BS_OWNERDRAW,id);}
 HWND edit(const wchar_t* text,int id){return make(L"EDIT",text,WS_TABSTOP|ES_AUTOHSCROLL,id,WS_EX_CLIENTEDGE);}
 void move(HWND h,int x,int y,int w,int height){
     if(h)MoveWindow(h,x,y,std::max(1,w),std::max(1,height),TRUE);
 }
+struct Columns {
+ int left,mid,right,leftWidth,midWidth,rightWidth,top,bottom;
+};
+Columns columns(){
+ RECT r{};GetClientRect(gWindow,&r);
+ const int gap=pix(13),avail=r.right-4*gap;
+ int a=avail*24/100, b=avail*33/100, c=avail-a-b;
+ return {gap,2*gap+a,3*gap+a+b,a,b,c,pix(72),r.bottom-pix(47)};
+}
 void layout() {
-    RECT r{};GetClientRect(gWindow,&r);
-    const int W=r.right,H=r.bottom,gap=13,top=10;
-    if(W<1050||H<720)return;
-    const int usable=W-4*gap;
-    const int a=usable*27/100;
-    const int b=usable*35/100;
-    const int c=usable-a-b;
-    const int xa=gap,xb=xa+a+gap,xc=xb+b+gap;
-    const int bottom=H-46;
-    move(gSessionTitle,xa,top,a,25);
-    move(gThemesTitle,xb,top,b,25);
-    move(gPreviewTitle,xc,top,c,25);
-    // Left: sessions and session-specific controls.
-    move(gSessions,xa,42,a,H-267);
-    int sy=H-211;
-    move(gReload,xa,sy,a,30);sy+=38;
-    move(gSaveSession,xa,sy,a,30);sy+=43;
-    move(gApply,xa,sy,a,39);sy+=46;
-    move(gRestore,xa,sy,a,34);
-    // Middle: one stable source filter and a searchable theme catalog.
-    move(gSourceFilter,xb,42,b,300);
-    move(gSearchLabel,xb,80,b,20);
-    move(gSearch,xb,105,b,28);
-    move(gThemes,xb,143,b,H-380);
-    move(gLibraryStats,xb,H-228,b,23);
-    int by=H-194;
-    move(gRefresh,xb,by,b/2-5,32);
-    move(gSources,xb+b/2+5,by,b/2-5,32);by+=40;
-    move(gImport,xb,by,b,32);
-    // Right: live preview and the complete RGB/HEX editor.
-    move(gPreview,xc,42,c,204);
-    move(gPreviewExpanded,xc,253,c,31);
-    move(gPaletteTitle,xc,292,c,25);
-    const int swGap=5,swW=(c-10*swGap)/11;
-    for(int i=0;i<22;++i){
-        move(gSwatches[i],xc+(i%11)*(swW+swGap),325+(i/11)*35,swW,29);
-    }
-    move(gColorTitle,xc,409,c,25);
-    move(gColorRgb,xc,435,c,23);
-    move(gHex,xc,468,c*38/100,29);
-    const int rx=xc+c*38/100+7, rem=c-c*38/100-7;
-    move(gHexApply,rx,468,rem,29);
-    int actionsY=506;
-    move(gPicker,xc,actionsY,c/2-4,32);
-    move(gReset,xc+c/2+4,actionsY,c/2-4,32);
-    move(gPersonalName,xc,560,c,29);
-    move(gSavePersonal,xc,601,c/2-4,33);
-    move(gExport,xc+c/2+4,601,c/2-4,33);
-    move(gStatus,gap,bottom,W-2*gap,30);
+ if(!gWindow||!gSessions)return;
+ RECT r{};GetClientRect(gWindow,&r);
+ const int W=r.right,H=r.bottom;
+ if(W<pix(950)||H<pix(590))return;
+ const auto col=columns(),pad=pix(14);
+ const int x1=col.left+pad,x2=col.mid+pad,x3=col.right+pad;
+ const int w1=col.leftWidth-2*pad,w2=col.midWidth-2*pad,w3=col.rightWidth-2*pad;
+ const int top=col.top,bottom=col.bottom;
+ move(gAppName,pix(35),pix(9),pix(340),pix(31));
+ move(gAppSub,pix(35),pix(39),W-pix(53),pix(23));
+
+ move(gSessionTitle,x1,top+pix(13),w1,pix(27));
+ move(gSessions,x1,top+pix(48),w1,bottom-top-pix(230));
+ int yy=bottom-pix(166);
+ move(gReload,x1,yy,w1,pix(31));yy+=pix(38);
+ move(gSaveSession,x1,yy,w1,pix(31));yy+=pix(38);
+ move(gApply,x1,yy,w1,pix(35));yy+=pix(41);
+ move(gRestore,x1,yy,w1,pix(31));
+
+ move(gThemesTitle,x2,top+pix(13),w2,pix(26));
+ move(gSourceFilter,x2,top+pix(46),w2,pix(240));
+ move(gSearchLabel,x2,top+pix(82),w2,pix(18));
+ move(gSearch,x2,top+pix(105),w2,pix(30));
+ move(gThemes,x2,top+pix(144),w2,bottom-top-pix(288));
+ move(gLibraryStats,x2,bottom-pix(131),w2,pix(20));
+ const int half=(w2-pix(8))/2;
+ move(gRefresh,x2,bottom-pix(105),half,pix(33));
+ move(gSources,x2+half+pix(8),bottom-pix(105),half,pix(33));
+ move(gImport,x2,bottom-pix(63),half,pix(33));
+ move(gFavoriteButton,x2+half+pix(8),bottom-pix(63),half,pix(33));
+
+ move(gPreviewTitle,x3,top+pix(13),w3,pix(26));
+ const int previewY=top+pix(45);
+ const int swY=bottom-pix(255);
+ const int pvHeight=swY-previewY-pix(39);
+ move(gPreview,x3,previewY,w3,std::max(pix(155),pvHeight));
+ move(gPaletteTitle,x3,swY-pix(24),w3,pix(22));
+ const int swGap=pix(5),swW=std::max(pix(18),(w3-10*swGap)/11);
+ for(int i=0;i<22;++i)
+    move(gSwatches[i],x3+(i%11)*(swW+swGap),
+         swY+(i/11)*pix(32),swW,pix(27));
+ move(gColorTitle,x3,bottom-pix(184),w3,pix(20));
+ move(gColorRgb,x3,bottom-pix(161),w3,pix(19));
+ move(gHex,x3,bottom-pix(138),w3*42/100,pix(29));
+ move(gHexApply,x3+w3*42/100+pix(7),bottom-pix(138),
+      w3-w3*42/100-pix(7),pix(29));
+ move(gPicker,x3,bottom-pix(102),(w3-pix(8))/2,pix(29));
+ move(gReset,x3+(w3+pix(8))/2,bottom-pix(102),(w3-pix(8))/2,pix(29));
+ move(gPersonalName,x3,bottom-pix(68),w3,pix(28));
+ move(gSavePersonal,x3,bottom-pix(35),(w3-pix(8))/2,pix(29));
+ move(gExport,x3+(w3+pix(8))/2,bottom-pix(35),(w3-pix(8))/2,pix(29));
+ move(gStatus,pix(20),H-pix(36),W-pix(40),pix(25));
 }
 bool filePicker(bool save,std::wstring& filename,const std::wstring& suggested=L""){
     wchar_t value[32768]{};
@@ -180,7 +198,7 @@ void refreshColorEditor(){
     EnableWindow(gExport,usable);
     EnableWindow(gPersonalName,usable);
     EnableWindow(gApply,usable&&chosenSession()!=nullptr);
-    EnableWindow(gPreviewExpanded,usable);
+    EnableWindow(gFavoriteButton,gHaveTheme);
     for(auto sw:gSwatches)EnableWindow(sw,usable);
     if(usable){
         const auto& c=gSelectedTheme.colors[gSelectedColor];
@@ -196,8 +214,17 @@ void refreshColorEditor(){
         SetWindowTextW(gHex,L"");
     }
     for(auto sw:gSwatches)InvalidateRect(sw,nullptr,TRUE);
-    redrawPreview();
-    if(usable)wp::updateExpandedPreview(gSelectedTheme,gSelectedColor);
+    if(gPreview){
+        wp::Theme shown=usable?gSelectedTheme:wp::Theme{L"Predefinito",L"Integrato",L"",wp::defaultPalette(),true};
+        wp::SessionAppearance appearance{};
+        if(const auto* session=chosenSession())appearance=wp::sessionAppearance(*session);
+        wp::updateInlinePreview(gPreview,shown,gSelectedColor,appearance);
+    }
+    if(gFavoriteButton) {
+        const bool fav=gHaveTheme&&wp::isFavorite(gSelectedTheme,gFavorites);
+        SetWindowTextW(gFavoriteButton,fav?L"★ Rimuovi preferito":L"☆ Aggiungi preferito");
+        InvalidateRect(gFavoriteButton,nullptr,TRUE);
+    }
 }
 void selectColor(int index){
     if(index<0||index>21)return;
@@ -222,6 +249,7 @@ void refreshSessions(){
 void populateSourceFilter(){
     auto was=gSelectedSource;
     std::set<std::wstring> names;
+    names.insert(L"★ Preferiti");
     names.insert(L"Integrato");
     names.insert(L"Personali");
     for(auto& src:wp::configuredSources())names.insert(src.name);
@@ -278,10 +306,12 @@ void filterThemes(const std::wstring& preferred=L""){
     int focus=-1;
     for(size_t i=0;i<gAllThemes.size();++i){
         const auto& t=gAllThemes[i];
-        if(gSelectedSource!=L"Tutte"&&gSelectedSource!=t.source)continue;
+        if(gSelectedSource==L"★ Preferiti" && !wp::isFavorite(t,gFavorites))continue;
+        if(gSelectedSource!=L"Tutte" && gSelectedSource!=L"★ Preferiti" &&
+           gSelectedSource!=t.source)continue;
         const auto haystack=toLower(t.name+L" "+t.source);
         if(!query.empty()&&haystack.find(query)==std::wstring::npos)continue;
-        std::wstring name=(t.available?L"[Locale] ":L"[Online] ")+t.name;
+        std::wstring name=(wp::isFavorite(t,gFavorites)?L"★  ":L"")+t.name;
         if(gSelectedSource==L"Tutte")name+=L"  -  "+t.source;
         SendMessageW(gThemes,LB_ADDSTRING,0,(LPARAM)name.c_str());
         gVisibleThemes.push_back(i);
@@ -293,30 +323,21 @@ void filterThemes(const std::wstring& preferred=L""){
     InvalidateRect(gThemes,nullptr,TRUE);
     applyThemeSelection();
 }
-void reloadCatalog(const std::wstring& focus=L""){
-    const auto selected=focus.empty()?gThemeKey:focus;
+void reloadCatalog(const std::wstring& focus=L"") {
+    const auto target=focus.empty()?gThemeKey:focus;
+    // Fully offline-first: online-only entries are not selectable. A successful
+    // synchronization populates the cache; no broken previews or [Locale] tags.
     gAllThemes=wp::localThemes();
-    auto remote=wp::remoteCatalog();
-    for(auto& item:remote){
-        bool found=false;
-        for(const auto& cached:gAllThemes){
-            if(cached.available&&cached.source==item.source&&cached.name==item.name){
-                found=true;break;
-            }
-        }
-        if(!found)gAllThemes.push_back(std::move(item));
-    }
     if(gAllThemes.size()>1)
         std::sort(gAllThemes.begin()+1,gAllThemes.end(),[](const wp::Theme& a,const wp::Theme& b){
-            int n=_wcsicmp(a.name.c_str(),b.name.c_str());
+            const int n=_wcsicmp(a.name.c_str(),b.name.c_str());
             return n<0||(n==0&&_wcsicmp(a.source.c_str(),b.source.c_str())<0);
         });
+    gFavorites=wp::favoriteIds();
     populateSourceFilter();
-    filterThemes(selected);
-    size_t local=0;
-    for(const auto& t:gAllThemes)if(t.available)++local;
-    SetWindowTextW(gLibraryStats,(L"Temi offline: "+std::to_wstring(local)+
-        L" / "+std::to_wstring(gAllThemes.size())+L" (inclusi i personali)").c_str());
+    filterThemes(target);
+    SetWindowTextW(gLibraryStats,(std::to_wstring(gAllThemes.size())+
+                    L" temi disponibili offline · cerca o filtra per raccolta").c_str());
 }
 void redrawSwatch(DRAWITEMSTRUCT* ds,int index){
     RECT bounds=ds->rcItem;
@@ -331,44 +352,58 @@ void redrawSwatch(DRAWITEMSTRUCT* ds,int index){
     }
     DeleteObject(border);
 }
-void drawPreview(DRAWITEMSTRUCT* ds){
+void drawButton(DRAWITEMSTRUCT* ds) {
     RECT r=ds->rcItem;
-    const auto& palette=gHaveTheme&&gSelectedTheme.available?gSelectedTheme.colors:wp::defaultPalette();
-    HBRUSH bg=CreateSolidBrush(rgb(palette[2]));FillRect(ds->hDC,&r,bg);DeleteObject(bg);
-    SetBkMode(ds->hDC,TRANSPARENT);
-    HFONT old=(HFONT)SelectObject(ds->hDC,gMono);
-    int x=r.left+15,y=r.top+12;
-    auto add=[&](int at,int col,const std::wstring& text){
-        SetTextColor(ds->hDC,rgb(palette[col]));
-        TextOutW(ds->hDC,at,y,text.c_str(),(int)text.size());
-    };
-    if(!gHaveTheme){
-        add(x,0,L"Seleziona un tema per vedere l'anteprima.");
-    }else if(!gSelectedTheme.available){
-        add(x,0,L"Tema disponibile nel catalogo.");
-        y+=30;
-        add(x,0,L"Premi Sincronizza libreria per scaricarlo.");
-    }else{
-        add(x,0,L"user@server:");
-        add(x+111,14,L"~/projects");
-        add(x+227,0,L"$ ls --color=auto");
-        y+=32;
-        add(x,14,L"documents/");add(x+137,10,L"backup.sh");add(x+265,0,L"notes.txt");
-        y+=29;
-        add(x,12,L"warning:");add(x+104,0,L" 2 changes pending");
-        y+=29;
-        add(x,8,L"error:");add(x+81,0,L" command not found");
-        y+=28;
-        int innerWidth=std::max(80,static_cast<int>(r.right-r.left-32)),square=(innerWidth-15*4)/16;
-        square=std::min(square,40);
-        for(int i=0;i<16;++i){
-            RECT block{x+i*(square+4),y,x+i*(square+4)+square,y+20};
-            HBRUSH b=CreateSolidBrush(rgb(palette[6+i]));
-            FillRect(ds->hDC,&block,b);DeleteObject(b);
-            FrameRect(ds->hDC,&block,(HBRUSH)GetStockObject(GRAY_BRUSH));
+    const bool disabled=(ds->itemState & ODS_DISABLED)!=0;
+    const bool down=(ds->itemState & ODS_SELECTED)!=0;
+    const bool primary=ds->CtlID==ID_APPLY||ds->CtlID==ID_REFRESH;
+    const bool favorite=ds->CtlID==ID_FAVORITE;
+    COLORREF back=disabled?RGB(236,240,246):
+       primary?(down?RGB(37,81,151):RGB(53,103,190)):
+       favorite?RGB(255,248,225):
+       (down?RGB(230,235,245):RGB(247,249,253));
+    COLORREF edge=disabled?RGB(222,226,233):
+        primary?RGB(53,103,190):favorite?RGB(237,196,101):RGB(211,221,236);
+    COLORREF foreground=disabled?RGB(151,162,177):
+        primary?RGB(255,255,255):favorite?RGB(135,93,24):RGB(49,65,88);
+    HBRUSH brush=CreateSolidBrush(back);
+    HPEN pen=CreatePen(PS_SOLID,pix(1),edge);
+    auto oldBrush=SelectObject(ds->hDC,brush);
+    auto oldPen=SelectObject(ds->hDC,pen);
+    RoundRect(ds->hDC,r.left+1,r.top+1,r.right-1,r.bottom-1,pix(9),pix(9));
+    SelectObject(ds->hDC,oldBrush);SelectObject(ds->hDC,oldPen);
+    DeleteObject(brush);DeleteObject(pen);
+    wchar_t txt[256]{};GetWindowTextW(ds->hwndItem,txt,_countof(txt));
+    SetTextColor(ds->hDC,foreground);SetBkMode(ds->hDC,TRANSPARENT);
+    auto prior=SelectObject(ds->hDC,gFont);
+    InflateRect(&r,-pix(7),0);
+    DrawTextW(ds->hDC,txt,-1,&r,DT_CENTER|DT_VCENTER|DT_SINGLELINE|DT_END_ELLIPSIS);
+    SelectObject(ds->hDC,prior);
+}
+void paintChrome(HWND wnd) {
+    PAINTSTRUCT ps{};
+    HDC dc=BeginPaint(wnd,&ps);
+    RECT r{};GetClientRect(wnd,&r);
+    FillRect(dc,&r,gBackgroundBrush);
+    if(gSessions){
+        auto col=columns();
+        const int xs[3]={col.left,col.mid,col.right};
+        const int ws[3]={col.leftWidth,col.midWidth,col.rightWidth};
+        HBRUSH brush=CreateSolidBrush(RGB(255,255,255));
+        HPEN pen=CreatePen(PS_SOLID,pix(1),RGB(222,230,241));
+        HGDIOBJ prevBrush=SelectObject(dc,brush);
+        HGDIOBJ prevPen=SelectObject(dc,pen);
+        for(int i=0;i<3;++i){
+            RoundRect(dc,xs[i],col.top,xs[i]+ws[i],col.bottom,pix(16),pix(16));
         }
+        SelectObject(dc,prevBrush);SelectObject(dc,prevPen);
+        DeleteObject(brush);DeleteObject(pen);
+        // Accent line in the header keeps visual hierarchy without busy decoration.
+        RECT bar{pix(18),pix(17),pix(23),pix(49)};
+        HBRUSH blue=CreateSolidBrush(RGB(53,103,190));
+        FillRect(dc,&bar,blue);DeleteObject(blue);
     }
-    SelectObject(ds->hDC,old);
+    EndPaint(wnd,&ps);
 }
 bool decodeHex(std::wstring s,wp::Color& c){
     s=trim(s);
@@ -565,49 +600,81 @@ void manageSources(){
     EnableWindow(gWindow,TRUE);SetForegroundWindow(gWindow);
     if(modal.saved){reloadCatalog();message(L"Fonti aggiornate. Premi Sincronizza libreria per aggiornare i file .reg.");}
 }
+void rebuildFonts(){
+    if(gFont)DeleteObject(gFont);
+    if(gMono)DeleteObject(gMono);
+    if(gTitleFont)DeleteObject(gTitleFont);
+    if(gSectionFont)DeleteObject(gSectionFont);
+    if(gSmallFont)DeleteObject(gSmallFont);
+    gFont=CreateFontW(-pix(13),0,0,0,FW_NORMAL,0,0,0,DEFAULT_CHARSET,
+        0,0,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI");
+    gMono=CreateFontW(-pix(13),0,0,0,FW_NORMAL,0,0,0,DEFAULT_CHARSET,
+        0,0,CLEARTYPE_QUALITY,FIXED_PITCH,L"Consolas");
+    gTitleFont=CreateFontW(-pix(20),0,0,0,FW_BOLD,0,0,0,DEFAULT_CHARSET,
+        0,0,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI");
+    gSectionFont=CreateFontW(-pix(15),0,0,0,FW_SEMIBOLD,0,0,0,DEFAULT_CHARSET,
+        0,0,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI");
+    gSmallFont=CreateFontW(-pix(12),0,0,0,FW_NORMAL,0,0,0,DEFAULT_CHARSET,
+        0,0,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI");
+    if(gWindow){
+        EnumChildWindows(gWindow,[](HWND child,LPARAM)->BOOL{
+            HFONT font=gFont;
+            if(child==gAppName)font=gTitleFont;
+            else if(child==gAppSub ||child==gLibraryStats ||child==gSearchLabel ||
+                    child==gStatus ||child==gColorRgb)font=gSmallFont;
+            else if(child==gSessionTitle ||child==gThemesTitle ||
+                    child==gPreviewTitle ||child==gPaletteTitle)font=gSectionFont;
+            SendMessageW(child,WM_SETFONT,(WPARAM)font,TRUE);
+            return TRUE;
+        },0);
+    }
+}
 void createControls(){
-    gFont=CreateFontW(-16,0,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,
-        OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI");
-    gMono=CreateFontW(-17,0,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,
-        OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,CLEARTYPE_QUALITY,FIXED_PITCH,L"Consolas");
-    gSessionTitle=label(L"1  SESSIONI PuTTY",8001);
-    gThemesTitle=label(L"2  LIBRERIA TEMI",8002);
-    gPreviewTitle=label(L"3  ANTEPRIMA",8003);
-    gPaletteTitle=label(L"MODIFICA PALETTE  -  seleziona uno dei 22 colori",8004);
+    if(!gBackgroundBrush)gBackgroundBrush=CreateSolidBrush(RGB(244,247,251));
+    if(!gCardBrush)gCardBrush=CreateSolidBrush(RGB(255,255,255));
+    rebuildFonts();
+    gAppName=label(L"WinPuttier",8000);
+    gAppSub=label(L"PuTTY Theme Manager  ·  Libreria offline  ·  Versione 0.4",8010);
+    gSessionTitle=label(L"01   SESSIONI PuTTY",8001);
+    gThemesTitle=label(L"02   LIBRERIA TEMI",8002);
+    gPreviewTitle=label(L"03   ANTEPRIMA ANSI · SCORRI PER ESPLORARE",8003);
+    gPaletteTitle=label(L"EDITOR PALETTE    ·    22 colori",8004);
     gSessions=make(L"LISTBOX",L"",WS_TABSTOP|WS_VSCROLL|LBS_NOTIFY|WS_BORDER,ID_SESSIONS);
     gThemes=make(L"LISTBOX",L"",WS_TABSTOP|WS_VSCROLL|LBS_NOTIFY|WS_BORDER,ID_THEMES);
     gSourceFilter=make(L"COMBOBOX",L"",WS_TABSTOP|WS_VSCROLL|CBS_DROPDOWNLIST,ID_SOURCE_FILTER);
-    gSearchLabel=label(L"Cerca tema o fonte:",8007);
-    gLibraryStats=label(L"Temi offline: -",8008);
+    gSearchLabel=label(L"RICERCA TEMI",8007);
+    gLibraryStats=label(L"Libreria locale",8008);
     gSearch=edit(L"",ID_SEARCH);
-    SendMessageW(gSearch,EM_SETCUEBANNER,TRUE,(LPARAM)L"Cerca tema o fonte...");
+    SendMessageW(gSearch,EM_SETCUEBANNER,TRUE,(LPARAM)L"Digita il nome del tema...");
     gReload=button(L"Rileggi sessioni",ID_RELOAD);
     gSaveSession=button(L"Crea tema dalla sessione",ID_SAVE_SESSION);
-    gApply=button(L"Applica tema alla sessione",ID_APPLY);
-    gRestore=button(L"Ripristina colori ORIGINALI",ID_RESTORE);
+    gApply=button(L"Applica tema",ID_APPLY);
+    gRestore=button(L"Ripristina colori originali",ID_RESTORE);
     gRefresh=button(L"Sincronizza libreria",ID_REFRESH);
-    gSources=button(L"Gestisci fonti...",ID_SOURCES);
+    gSources=button(L"Gestisci fonti",ID_SOURCES);
     gImport=button(L"Importa .reg",ID_IMPORT);
-    gPreview=make(L"STATIC",L"",WS_BORDER|SS_OWNERDRAW,ID_PREVIEW);
-    gPreviewExpanded=button(L"Apri anteprima ANSI completa...",ID_PREVIEW_EXPANDED);
-    gColorTitle=label(L"Seleziona un colore",ID_COLOR_TITLE);
+    gFavoriteButton=button(L"☆ Aggiungi preferito",ID_FAVORITE);
+    gPreview=wp::createInlinePreview(gWindow,ID_PREVIEW);
+    gColorTitle=label(L"Seleziona uno dei 22 colori",ID_COLOR_TITLE);
     gColorRgb=label(L"RGB",ID_COLOR_RGB);
-    for(int i=0;i<22;++i){
+    for(int i=0;i<22;++i)
         gSwatches[i]=make(L"BUTTON",kColorNames[i],WS_TABSTOP|BS_OWNERDRAW,ID_SWATCH_FIRST+i);
-    }
     gHex=edit(L"#24283B",ID_HEX);
-    gHexApply=button(L"Aggiorna HEX",ID_HEX_APPLY);
-    gPicker=button(L"Selettore RGB...",ID_PICKER);
-    gReset=button(L"Annulla modifiche",ID_RESET);
+    gHexApply=button(L"Conferma HEX",ID_HEX_APPLY);
+    gPicker=button(L"Selettore RGB",ID_PICKER);
+    gReset=button(L"Annulla",ID_RESET);
     gPersonalName=edit(L"",ID_PERSONAL_NAME);
-    gSavePersonal=button(L"Salva tema personale",ID_SAVE_PERSONAL);
+    SendMessageW(gPersonalName,EM_SETCUEBANNER,TRUE,(LPARAM)L"Nome del nuovo tema...");
+    gSavePersonal=button(L"Salva personale",ID_SAVE_PERSONAL);
     gExport=button(L"Esporta .reg",ID_EXPORT);
     gStatus=label(L"Pronto",ID_STATUS);
+    rebuildFonts();
 }
 LRESULT CALLBACK mainProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
     switch(msg){
     case WM_CREATE:
         gWindow=wnd;
+        gDpi=static_cast<int>(GetDpiForWindow(wnd));
         createControls();
         if(!wp::ensureDirs())message(L"Non riesco a creare la cartella dati di WinPuttier.");
         refreshSessions();reloadCatalog();
@@ -615,15 +682,42 @@ LRESULT CALLBACK mainProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
         return 0;
     case WM_GETMINMAXINFO: {
         auto* info=(MINMAXINFO*)l;
-        info->ptMinTrackSize.x=1090;info->ptMinTrackSize.y=735;return 0;
+        info->ptMinTrackSize.x=pix(985);info->ptMinTrackSize.y=pix(630);return 0;
     }
     case WM_SIZE:layout();return 0;
+    case WM_DPICHANGED:{
+        gDpi=HIWORD(w);
+        const RECT* rect=reinterpret_cast<const RECT*>(l);
+        SetWindowPos(wnd,nullptr,rect->left,rect->top,rect->right-rect->left,
+            rect->bottom-rect->top,SWP_NOACTIVATE|SWP_NOZORDER);
+        rebuildFonts();
+        layout();
+        refreshColorEditor();
+        InvalidateRect(wnd,nullptr,TRUE);
+        return 0;
+    }
+    case WM_ERASEBKGND:return 1;
+    case WM_PAINT:paintChrome(wnd);return 0;
+    case WM_CTLCOLORSTATIC:{
+        HDC dc=(HDC)w;
+        HWND child=(HWND)l;
+        SetBkMode(dc,TRANSPARENT);
+        SetTextColor(dc,(child==gStatus||child==gAppSub||child==gLibraryStats)?
+                     RGB(102,114,132):RGB(35,53,80));
+        return (LRESULT)((child==gAppName||child==gAppSub||child==gStatus)?
+                         gBackgroundBrush:gCardBrush);
+    }
+    case WM_CTLCOLORLISTBOX:
+    case WM_CTLCOLOREDIT:
+        SetBkColor((HDC)w,RGB(255,255,255));
+        SetTextColor((HDC)w,RGB(38,54,77));
+        return (LRESULT)gCardBrush;
     case WM_DRAWITEM: {
         auto* ds=(DRAWITEMSTRUCT*)l;
-        if(ds->CtlID==ID_PREVIEW){drawPreview(ds);return TRUE;}
         if(ds->CtlID>=ID_SWATCH_FIRST&&ds->CtlID<ID_SWATCH_FIRST+22){
             redrawSwatch(ds,(int)ds->CtlID-ID_SWATCH_FIRST);return TRUE;
         }
+        if(ds->CtlID>=201 && ds->CtlID<500) {drawButton(ds);return TRUE;}
         break;
     }
     case WM_COMMAND:{
@@ -659,9 +753,18 @@ LRESULT CALLBACK mainProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
         case ID_REFRESH:syncAsync();break;
         case ID_SOURCES:manageSources();break;
         case ID_IMPORT:importReg();break;
-        case ID_PREVIEW_EXPANDED:
-            if(gHaveTheme&&gSelectedTheme.available)wp::showExpandedPreview(wnd,gSelectedTheme,gSelectedColor);
+        case ID_FAVORITE:{
+            if(!gHaveTheme)break;
+            const bool marked=wp::isFavorite(gSelectedTheme,gFavorites);
+            if(!wp::setFavorite(gSelectedTheme,!marked)){
+                message(L"Impossibile salvare i preferiti nella cartella locale.");
+                break;
+            }
+            gFavorites=wp::favoriteIds();
+            filterThemes(gThemeKey);
+            message(marked?L"Tema rimosso dai preferiti.":L"Tema aggiunto ai preferiti.");
             break;
+        }
         case ID_PICKER:colorPicker();break;
         case ID_HEX_APPLY:applyHex();break;
         case ID_RESET:resetChanges();break;
@@ -688,6 +791,11 @@ LRESULT CALLBACK mainProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
     case WM_DESTROY:
         if(gMono)DeleteObject(gMono);
         if(gFont)DeleteObject(gFont);
+        if(gTitleFont)DeleteObject(gTitleFont);
+        if(gSectionFont)DeleteObject(gSectionFont);
+        if(gSmallFont)DeleteObject(gSmallFont);
+        if(gBackgroundBrush)DeleteObject(gBackgroundBrush);
+        if(gCardBrush)DeleteObject(gCardBrush);
         gWindow=nullptr;
         PostQuitMessage(0);return 0;
     }
@@ -696,17 +804,19 @@ LRESULT CALLBACK mainProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
 } // namespace
 
 int WINAPI wWinMain(HINSTANCE app,HINSTANCE,LPWSTR,int show){
+    // Windows 10: monitor-aware native rendering, never bitmap-stretch controls.
+    SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
     INITCOMMONCONTROLSEX common{};common.dwSize=sizeof(common);common.dwICC=ICC_WIN95_CLASSES;
     InitCommonControlsEx(&common);
     WNDCLASSEXW cls{};cls.cbSize=sizeof(cls);cls.hInstance=app;
     cls.lpfnWndProc=mainProc;cls.lpszClassName=L"WinPuttierNative";
     cls.hCursor=LoadCursorW(nullptr,IDC_ARROW);
     cls.hIcon=LoadIconW(nullptr,IDI_APPLICATION);
-    cls.hbrBackground=(HBRUSH)(COLOR_BTNFACE+1);
+    cls.hbrBackground=(HBRUSH)(COLOR_WINDOW+1);
     if(!RegisterClassExW(&cls))return 1;
     HWND wnd=CreateWindowExW(0,cls.lpszClassName,L"WinPuttier - Theme Manager",
          WS_OVERLAPPEDWINDOW|WS_CLIPCHILDREN,CW_USEDEFAULT,CW_USEDEFAULT,
-         1340,790,nullptr,nullptr,app,nullptr);
+         1320,820,nullptr,nullptr,app,nullptr);
     if(!wnd)return 1;
     ShowWindow(wnd,show);UpdateWindow(wnd);
     MSG msg{};

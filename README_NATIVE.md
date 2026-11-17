@@ -2,14 +2,14 @@
 
 Lightweight native C++17 / Win32 theme manager for PuTTY sessions. No Python, .NET or third-party runtime required.
 
-**Development branch:** Native Windows port of [Puttier by anonimoanemico](https://github.com/anonimoanemico/puttier). The original Python implementation remains in the repository for reference. WinPuttier is currently an **experimental** build.
+**Development branch:** Native Windows port of [Puttier by anonimoanemico](https://github.com/anonimoanemico/puttier). The original Python implementation remains in the repository for reference. WinPuttier 0.4 is an **experimental** build. GUI and High DPI behavior should be verified on real Windows installations.
 
 ## Features
 
 - Lists PuTTY saved sessions from the current user's Windows registry.
 - Works with PuTTY's 22-color Colour0 to Colour21 palette format.
-- Three-column UI: saved sessions, searchable theme catalog with a source filter, and a live terminal preview.
-- A separate, fully scrollable ANSI preview includes a realistic Linux session, all six special PuTTY colors, all 256 foreground/background pairings (16 foreground colors on 16 backgrounds), and a full 16-color legend. The selected palette color is highlighted throughout the preview.
+- Three-column native UI with lightweight card styling, DPI-aware layout, saved PuTTY sessions, local theme catalog, and an **integrated, scrollable ANSI preview**.
+- The single built-in preview covers realistic sample terminal output, the six default/bold/cursor roles, the 16 ANSI swatches, and **256 foreground/background combinations**. There is **no second popup preview**. Clicking a color highlights its use in the ANSI matrices.
 - Select any of 22 color swatches, enter a HEX value or use the native RGB color picker. Reset unsaved edits at any time.
 - Save edited palettes under a chosen name as personal themes. Saving a theme does not modify a PuTTY session.
 - "Crea tema dalla sessione" saves the currently configured colors of a PuTTY session into a personal theme.
@@ -18,9 +18,11 @@ Lightweight native C++17 / Win32 theme manager for PuTTY sessions. No Python, .N
 - Apply a theme only to the selected PuTTY session, with a confirmation dialog.
 - **Automatic original backup before the first change**; restore the **original** colors of the selected session, even after applying multiple different themes. The original snapshot is never overwritten by later changes. The backup distinguishes missing values from defined values.
 - "Sincronizza libreria" downloads **only the .reg palette files**, in parallel (up to ten simultaneous HTTPS requests). It does not download ZIP archives or the complete upstream repositories.
-- The application stores the themes in its local cache and uses the repository file revisions for incremental updates where available. Existing local themes remain usable when offline. Selecting a catalog entry never starts a download.
+- The application stores the themes in its local cache and uses source revision IDs when provided. Only **downloaded and valid themes** appear in the list, with no redundant [Locale]/[Online] prefixes. The original name and source survive filename sanitization; existing WinPuttier 0.3 caches migrate automatically. Selecting a theme never starts a download.
 - A progress counter shows how many .reg files have been processed. Failed downloads are reported and can be retried by synchronizing again.
+- Add/remove favorites using a star toggle, and choose "★ Preferiti" in the source filter to see only favorites. The favorites list is persistent and survives library sync.
 - Use 'Gestisci fonti...' to edit the source configuration. Existing cached themes remain available offline.
+- The chosen PuTTY session's "BoldAsColour", "UseSystemColours" and "ANSIColour" values are read for preview guidance. These settings are not modified. The preview warns when system colors or ANSI-disabling options can cause differences from a live PuTTY terminal.
 - The original PuTTY default color palette is available without downloading any themes.
 
 ## Theme sources
@@ -41,6 +43,7 @@ WinPuttier creates, on demand:
 - %LOCALAPPDATA%\WinPuttier\sources.ini — editable source list, created on first save (four defaults).
 - %LOCALAPPDATA%\WinPuttier\catalog.tsv — last synchronized theme list.
 - %LOCALAPPDATA%\WinPuttier\sync-index.tsv — last successfully synchronized file revisions.
+- %LOCALAPPDATA%\WinPuttier\favorites.tsv — the persistent favorites list.
 - %LOCALAPPDATA%\WinPuttier\themes\ — personal/imported .reg themes.
 - %LOCALAPPDATA%\WinPuttier\cache\ — downloaded .reg themes.
 - %LOCALAPPDATA%\WinPuttier\backups\ — per-session backup snapshots (.wpb).

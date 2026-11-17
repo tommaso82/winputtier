@@ -27,6 +27,18 @@ std::wstring cacheDir();
 std::wstring backupDir();
 bool ensureDirs();
 std::vector<Session> sessions();
+struct SessionAppearance {
+    int boldMode=1; // PuTTY BoldAsColour: 0=font, 1=colour, 2=both
+    bool useSystemColours=false;
+    bool ansiColours=true;
+};
+SessionAppearance sessionAppearance(const Session& session);
+std::wstring themeId(const Theme& theme);
+std::wstring cacheFilePath(const Theme& theme);
+std::vector<std::wstring> favoriteIds();
+bool setFavorite(const Theme& theme, bool favorite);
+bool isFavorite(const Theme& theme, const std::vector<std::wstring>& ids);
+
 std::vector<Theme> localThemes();
 std::vector<Theme> remoteCatalog();
 std::vector<Theme> parseCatalogText(const std::wstring& content);

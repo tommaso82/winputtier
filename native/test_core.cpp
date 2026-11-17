@@ -85,6 +85,23 @@ int main() {
        !revisions[1].remoteRevision.empty() || revisions[1].available) {
         std::cerr<<"Revision catalog compatibility failure\n";return 14;
     }
-    std::wcout<<L"Native parser, catalog, source validation and original-backup tests passed\n";
+    // Cache identity cannot depend on the filesystem-safe representation of
+    // a theme's name. "A:B" and "A_B" must not use the same cache file.
+    wp::Theme first;first.source=L"iTerm2";first.name=L"Neon Raincheck: After Hours";
+    wp::Theme second=first;second.name=L"Neon Raincheck_ After Hours";
+    if(wp::cacheFilePath(first)==wp::cacheFilePath(second) ||
+       wp::themeId(first)==wp::themeId(second)){
+        std::cerr<<"Theme identity collision after filename sanitization\n";return 15;
+    }
+    std::vector<std::wstring> saved{wp::themeId(first)};
+    if(!wp::isFavorite(first,saved) || wp::isFavorite(second,saved)) {
+        std::cerr<<"Favorites do not preserve exact theme identity\n";return 16;
+    }
+    wp::Session nonexistent{L"WinPuttier-DOES-NOT-EXIST",L"test"};
+    auto settings=wp::sessionAppearance(nonexistent);
+    if(settings.boldMode!=1 || settings.useSystemColours || !settings.ansiColours) {
+        std::cerr<<"Incorrect default PuTTY color settings\n";return 17;
+    }
+    std::wcout<<L"Native theme identity, favorites, source and backup tests passed\n";
     return 0;
 }
