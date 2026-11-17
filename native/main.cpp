@@ -346,7 +346,7 @@ void drawPreview(DRAWITEMSTRUCT* ds){
         y+=29;
         add(x,8,L"error:");add(x+81,0,L" command not found");
         y+=28;
-        int innerWidth=std::max(80,r.right-r.left-32),square=(innerWidth-15*4)/16;
+        int innerWidth=std::max(80,static_cast<int>(r.right-r.left-32)),square=(innerWidth-15*4)/16;
         square=std::min(square,40);
         for(int i=0;i<16;++i){
             RECT block{x+i*(square+4),y,x+i*(square+4)+square,y+20};
@@ -547,8 +547,8 @@ void manageSources(){
     }
     SourceEditor modal{};
     RECT owner{};GetWindowRect(gWindow,&owner);
-    int x=owner.left+std::max(0,((owner.right-owner.left)-790)/2);
-    int y=owner.top+std::max(0,((owner.bottom-owner.top)-500)/2);
+    int x=owner.left+std::max(0,static_cast<int>(((owner.right-owner.left)-790)/2));
+    int y=owner.top+std::max(0,static_cast<int>(((owner.bottom-owner.top)-500)/2));
     HWND dialog=CreateWindowExW(WS_EX_DLGMODALFRAME,L"WinPuttierSourcesDialog",
           L"WinPuttier - Gestisci fonti",WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU,
           x,y,790,500,gWindow,nullptr,GetModuleHandleW(nullptr),&modal);
