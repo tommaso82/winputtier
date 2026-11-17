@@ -9,6 +9,11 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+# Source files are UTF-8. Without /utf-8 MSVC interprets UTF-8 literals
+# using the machine's legacy codepage (e.g. Â· / â˜† on Italian Windows).
+if(MSVC)
+  add_compile_options(/utf-8)
+endif()
 
 add_library(winputtier_core STATIC native/core.cpp native/core.h)
 target_compile_definitions(winputtier_core PRIVATE UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)

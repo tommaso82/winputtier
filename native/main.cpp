@@ -98,8 +98,38 @@ HWND make(const wchar_t* klass,const wchar_t* label,DWORD style,int id,DWORD ex=
 HWND label(const wchar_t* label,int id){return make(L"STATIC",label,0,id);}
 HWND button(const wchar_t* label,int id){return make(L"BUTTON",label,WS_TABSTOP|BS_OWNERDRAW,id);}
 HWND edit(const wchar_t* text,int id){return make(L"EDIT",text,WS_TABSTOP|ES_AUTOHSCROLL,id,WS_EX_CLIENTEDGE);}
+struct PendingMove { HWND window; int x,y,w,h; };
+std::vector<PendingMove> gLayoutMoves;
+bool gCollectingLayout=false;
 void move(HWND h,int x,int y,int w,int height){
-    if(h)MoveWindow(h,x,y,std::max(1,w),std::max(1,height),TRUE);
+    if(!h)return;
+    const PendingMove p{h,x,y,std::max(1,w),std::max(1,height)};
+    if(gCollectingLayout)gLayoutMoves.push_back(p);
+    else MoveWindow(h,p.x,p.y,p.w,p.h,TRUE);
+}
+void commitLayout(){
+    gCollectingLayout=false;
+    // Apply all child positions as one transaction, without intermediate
+    // repainting. The old approach moved and painted dozens of children one
+    // by one, leaving orphaned rounded borders while the window was resized.
+    HDWP positions=BeginDeferWindowPos(static_cast<int>(gLayoutMoves.size()));
+    if(positions){
+        for(const auto& p:gLayoutMoves){
+            positions=DeferWindowPos(positions,p.window,nullptr,
+                p.x,p.y,p.w,p.h,
+                SWP_NOZORDER|SWP_NOACTIVATE|SWP_NOREDRAW|SWP_NOCOPYBITS);
+            if(!positions)break;
+        }
+    }
+    if(positions)EndDeferWindowPos(positions);
+    else for(const auto& p:gLayoutMoves)
+        SetWindowPos(p.window,nullptr,p.x,p.y,p.w,p.h,
+            SWP_NOZORDER|SWP_NOACTIVATE|SWP_NOREDRAW|SWP_NOCOPYBITS);
+    gLayoutMoves.clear();
+    // Clear everything (including exposed areas from the former positions),
+    // then redraw the three rounded panels and every control consistently.
+    RedrawWindow(gWindow,nullptr,nullptr,
+        RDW_INVALIDATE|RDW_ERASE|RDW_ALLCHILDREN);
 }
 struct Columns {
  int left,mid,right,leftWidth,midWidth,rightWidth,top,bottom;
@@ -115,6 +145,8 @@ void layout() {
  RECT r{};GetClientRect(gWindow,&r);
  const int W=r.right,H=r.bottom;
  if(W<pix(950)||H<pix(590))return;
+ gLayoutMoves.clear();
+ gCollectingLayout=true;
  const auto col=columns();
  const int pad=pix(14);
  const int x1=col.left+pad,x2=col.mid+pad,x3=col.right+pad;
@@ -164,6 +196,7 @@ void layout() {
  move(gSavePersonal,x3,bottom-pix(35),(w3-pix(8))/2,pix(29));
  move(gExport,x3+(w3+pix(8))/2,bottom-pix(35),(w3-pix(8))/2,pix(29));
  move(gStatus,pix(20),H-pix(36),W-pix(40),pix(25));
+ commitLayout();
 }
 bool filePicker(bool save,std::wstring& filename,const std::wstring& suggested=L""){
     wchar_t value[32768]{};
