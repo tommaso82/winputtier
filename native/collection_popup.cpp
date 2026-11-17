@@ -202,13 +202,13 @@ int showCollectionPopup(HWND owner,HWND anchor,
     RECT anchorBounds{};GetWindowRect(anchor,&anchorBounds);
     MONITORINFO monitor{};monitor.cbSize=sizeof(monitor);
     GetMonitorInfoW(MonitorFromRect(&anchorBounds,MONITOR_DEFAULTTONEAREST),&monitor);
-    const int width=std::max(anchorBounds.right-anchorBounds.left,MulDiv(190,s.dpi,96));
+    const int width=std::max(static_cast<int>(anchorBounds.right-anchorBounds.left),MulDiv(190,s.dpi,96));
     const int height=s.visible*rowHeight(s)+2*pad(s);
     const RECT area=monitor.rcWork;
     const int x=std::clamp(anchorBounds.left,area.left,std::max(area.left,area.right-width));
     int y=anchorBounds.bottom+MulDiv(3,s.dpi,96);
     if(y+height>area.bottom)y=anchorBounds.top-height-MulDiv(3,s.dpi,96);
-    y=std::clamp(y,area.top,std::max(area.top,area.bottom-height));
+    y=std::clamp(y,static_cast<int>(area.top),std::max(static_cast<int>(area.top),static_cast<int>(area.bottom)-height));
     HWND popup=CreateWindowExW(WS_EX_TOOLWINDOW|WS_EX_TOPMOST,klass,L"",
                    WS_POPUP,x,y,width,height,owner,nullptr,
                    GetModuleHandleW(nullptr),&s);

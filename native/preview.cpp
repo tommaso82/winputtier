@@ -251,8 +251,8 @@ LRESULT CALLBACK canvasProc(HWND h,UINT msg,WPARAM w,LPARAM l) {
    switch(LOWORD(w)){
      case SB_LINEUP:next-=dp(*st,42);break;
      case SB_LINEDOWN:next+=dp(*st,42);break;
-     case SB_PAGEUP:next-=std::max(1,viewport.bottom-viewport.top);break;
-     case SB_PAGEDOWN:next+=std::max(1,viewport.bottom-viewport.top);break;
+     case SB_PAGEUP:next-=std::max(1,static_cast<int>(viewport.bottom-viewport.top));break;
+     case SB_PAGEDOWN:next+=std::max(1,static_cast<int>(viewport.bottom-viewport.top));break;
      case SB_TOP:next=0;break;
      case SB_BOTTOM:next=dp(*st,1870);break;
    }
@@ -313,7 +313,7 @@ PreviewScrollMetrics inlinePreviewScrollMetrics(HWND preview){
   auto* st=state(preview);
   if(!st)return result;
   RECT rect{};GetClientRect(preview,&rect);
-  result.page=std::max(1,rect.bottom-rect.top);
+  result.page=std::max(1,static_cast<int>(rect.bottom-rect.top));
   result.total=dp(*st,1870);
   result.position=st->scroll;
   return result;

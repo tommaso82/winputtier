@@ -38,7 +38,7 @@ Model model(const ScrollState& st){
         const int count=static_cast<int>(SendMessageW(st.target,LB_GETCOUNT,0,0));
         const int rowHeight=static_cast<int>(SendMessageW(st.target,LB_GETITEMHEIGHT,0,0));
         m.total=std::max(0,count);
-        const int height=std::max(1,rect.bottom-rect.top);
+        const int height=std::max(1,static_cast<int>(rect.bottom-rect.top));
         m.page=std::max(1,height/std::max(1,rowHeight));
         m.total=std::max(m.total,m.page);
         m.position=std::max(0,static_cast<int>(SendMessageW(st.target,LB_GETTOPINDEX,0,0)));
@@ -57,7 +57,7 @@ struct Geometry{
 };
 Geometry geometry(HWND h,const ScrollState& st,const Model& m){
     RECT bounds{};GetClientRect(h,&bounds);
-    const int height=std::max(1,bounds.bottom-bounds.top);
+    const int height=std::max(1,static_cast<int>(bounds.bottom-bounds.top));
     Geometry g{};
     g.top=dp(st,3);
     g.height=std::max(1,height-2*g.top);
