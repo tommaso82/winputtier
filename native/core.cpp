@@ -331,7 +331,7 @@ bool saveCustomTheme(const Theme& theme, const std::wstring& path, std::wstring&
 std::vector<Theme> localThemes() {
     std::vector<Theme> out;
     out.push_back({L"Default (PuTTY)",L"Integrato",L"",defaultPalette(),true});
-    for(const auto& source : {std::pair<std::wstring,std::wstring>{customDir(),L"Personale"},{cacheDir(),L"Scaricato"}}) {
+    for(const auto& source : {std::pair<std::wstring,std::wstring>{customDir(),L"Personali"},{cacheDir(),L"Scaricato"}}) {
         WIN32_FIND_DATAW d{};
         auto spec=join(source.first,L"*.reg");
         HANDLE h=FindFirstFileW(spec.c_str(),&d);
@@ -341,6 +341,13 @@ std::vector<Theme> localThemes() {
             Theme theme;theme.name=d.cFileName;
             if(theme.name.size()>4)theme.name.resize(theme.name.size()-4);
             theme.source=source.second;
+            if (source.second == L"Scaricato") {
+                const size_t delimiter = theme.name.find(L"__");
+                if (delimiter != std::wstring::npos) {
+                    theme.source = theme.name.substr(0, delimiter);
+                    theme.name.erase(0, delimiter + 2);
+                }
+            }
             if(readRegFile(join(source.first,d.cFileName),theme))out.push_back(std::move(theme));
         }while(FindNextFileW(h,&d));
         FindClose(h);
@@ -367,46 +374,120 @@ std::vector<Theme> remoteCatalog() {
     while(std::getline(in,line)) {
         auto a=line.find(L'\t'),b=a==std::wstring::npos?a:line.find(L'\t',a+1);
         if(a==std::wstring::npos||b==std::wstring::npos)continue;
-        Theme t;t.source=line.substr(0,a);t.name=line.substr(a+1,b-a-1);t.remoteUrl=trim(line.substr(b+1));
+        Theme t;t.source=line.substr(0,a);t.name=line.substr(a+1,b-a-1);t.remoteUrl=trim(line.substr(b+1));t.available=false;
         if(t.remoteUrl.rfind(L"https://",0)==0)out.push_back(std::move(t));
     }
     return out;
 }
+std::wstring sourceConfigText() {
+    const std::wstring path=join(dataDir(),L"sources.ini");
+    if(GetFileAttributesW(path.c_str())!=INVALID_FILE_ATTRIBUTES) return readText(path);
+    return
+       L"; WinPuttier - raccolte temi (modificabili)\r\n"
+       L"; Formato: Nome = URL GitHub API della cartella oppure URL HTTPS del singolo file .reg\r\n"
+       L"[Sources]\r\n"
+       L"iTerm2-Color-Schemes = https://api.github.com/repos/mbadolato/iTerm2-Color-Schemes/contents/putty\r\n"
+       L"Pretty PuTTY = https://api.github.com/repos/jacek0x/pretty-putty/contents\r\n"
+       L"Dracula PuTTY = https://raw.githubusercontent.com/teeli/dracula-putty/master/dracula.reg\r\n"
+       L"AlexAkulov = https://api.github.com/repos/AlexAkulov/putty-color-themes/contents\r\n";
+}
+namespace {
+bool checkSourceUrl(const std::wstring& url) {
+    if(url.size()>1800) return false;
+    const std::wstring api=L"https://api.github.com/repos/";
+    const std::wstring raw=L"https://raw.githubusercontent.com/";
+    if(url.compare(0,api.size(),api)==0) {
+        const auto pos=url.find(L"/contents",api.size());
+        return pos!=std::wstring::npos && pos>api.size()+2 && url.find(L'?',pos)==std::wstring::npos;
+    }
+    if(url.compare(0,raw.size(),raw)==0) {
+        const auto suffix=url.rfind(L".reg");
+        return suffix==url.size()-4 && suffix>raw.size()+3;
+    }
+    return false;
+}
+bool parseSources(const std::wstring& input,std::vector<ThemeSource>& out,std::wstring& message) {
+    out.clear();std::wistringstream stream(input);std::wstring line;
+    std::set<std::wstring> names;
+    bool inSection=false;
+    int lineNumber=0;
+    while(std::getline(stream,line)) {
+        ++lineNumber;
+        line=trim(line);
+        if(line.empty()||line[0]==L';'||line[0]==L'#')continue;
+        if(line==L"[Sources]") {inSection=true;continue;}
+        if(line[0]==L'['){inSection=false;continue;}
+        if(!inSection)continue;
+        auto equal=line.find(L'=');
+        if(equal==std::wstring::npos){message=L"Fonte non valida alla riga "+std::to_wstring(lineNumber);return false;}
+        ThemeSource src{trim(line.substr(0,equal)),trim(line.substr(equal+1))};
+        if(src.name.empty()||src.name.size()>70||src.name.find_first_of(L"\\/:*?\"<>|")!=std::wstring::npos ||
+           !checkSourceUrl(src.url)) {
+            message=L"Nome o URL non valido alla riga "+std::to_wstring(lineNumber);return false;
+        }
+        auto unique=src.name;
+        std::transform(unique.begin(),unique.end(),unique.begin(),towlower);
+        if(!names.insert(unique).second){message=L"Nome fonte duplicato: "+src.name;return false;}
+        out.push_back(std::move(src));
+        if(out.size()>30){message=L"Limite di 30 fonti";return false;}
+    }
+    if(!inSection && out.empty()){message=L"Manca la sezione [Sources]";return false;}
+    return true;
+}
+} // namespace
+std::vector<ThemeSource> configuredSources() {
+    std::vector<ThemeSource> items;std::wstring error;
+    parseSources(sourceConfigText(),items,error);
+    return items;
+}
+bool updateSourceConfig(const std::wstring& input,std::wstring& message) {
+    std::vector<ThemeSource> checked;
+    if(!parseSources(input,checked,message))return false;
+    if(!ensureDirs()){message=L"Impossibile creare la cartella di configurazione.";return false;}
+    const auto temp=join(dataDir(),L"sources.ini.tmp"),dst=join(dataDir(),L"sources.ini");
+    if(!writeTextUtf8(temp,input)){message=L"Impossibile scrivere le fonti.";return false;}
+    if(!MoveFileExW(temp.c_str(),dst.c_str(),MOVEFILE_REPLACE_EXISTING|MOVEFILE_WRITE_THROUGH)){
+        DeleteFileW(temp.c_str());message=L"Impossibile salvare sources.ini";return false;
+    }
+    message=L"Fonti salvate: "+std::to_wstring(checked.size());
+    return true;
+}
 bool refreshCatalog(std::wstring& message) {
-    struct Source {const wchar_t* label;const wchar_t* url;};
-    const Source sources[]={
-        {L"iTerm2-Color-Schemes",L"https://api.github.com/repos/mbadolato/iTerm2-Color-Schemes/contents/putty"},
-        {L"Pretty PuTTY",L"https://api.github.com/repos/jacek0x/pretty-putty/contents"},
-        {L"AlexAkulov",L"https://api.github.com/repos/AlexAkulov/putty-color-themes/contents"}
-    };
+    auto sources=configuredSources();
     std::vector<Theme> all;
     std::wstring errors;
     for(const auto& src:sources) {
-        std::string body;std::wstring error;
-        if(!httpGet(src.url,body,error,4*1024*1024)) {
-            errors+=std::wstring(src.label)+L": "+error+L"; ";continue;
+        if(src.url.rfind(L"https://raw.githubusercontent.com/",0)==0) {
+            auto begin=src.url.find_last_of(L'/');
+            std::wstring name=src.url.substr(begin+1);
+            if(name.size()>4)name.resize(name.size()-4);
+            all.push_back({name,src.name,src.url,{},false});
+            continue;
         }
-        auto list=parseContents(body,src.label);
+        std::string body;std::wstring error;
+        if(!httpGet(src.url,body,error,6*1024*1024)) {
+            errors+=src.name+L": "+error+L"; ";continue;
+        }
+        auto list=parseContents(body,src.name);
         all.insert(all.end(),list.begin(),list.end());
     }
-    // Dracula is one of the original Puttier sources and does not need an API listing.
-    all.push_back({L"Dracula (originale)",L"Dracula PuTTY",L"https://raw.githubusercontent.com/teeli/dracula-putty/master/dracula.reg",{},false});
-    if(all.size()<2){message=L"Catalogo non aggiornato. "+errors;return false;}
+    if(all.empty()) {message=L"Nessuna fonte disponibile: "+errors;return false;}
     std::wstring file;
     for(auto& t:all) {
         for(auto& c:t.name)if(c==L'\t'||c==L'\r'||c==L'\n')c=L' ';
         file+=t.source+L"\t"+t.name+L"\t"+t.remoteUrl+L"\n";
     }
     auto temp=join(dataDir(),L"catalog.tmp");
-    if(!writeTextUtf8(temp,file)) {message=L"Errore scrittura catalogo";return false;}
+    if(!writeTextUtf8(temp,file)){message=L"Errore scrittura catalogo";return false;}
     auto target=join(dataDir(),L"catalog.tsv");
     if(!MoveFileExW(temp.c_str(),target.c_str(),MOVEFILE_REPLACE_EXISTING|MOVEFILE_WRITE_THROUGH)){
         DeleteFileW(temp.c_str());message=L"Impossibile aggiornare il catalogo";return false;
     }
-    message=L"Catalogo aggiornato: "+std::to_wstring(all.size())+L" temi online.";
-    if(!errors.empty())message+=L" Fonti non raggiungibili: "+errors;
+    message=L"Catalogo aggiornato: "+std::to_wstring(all.size())+L" temi.";
+    if(!errors.empty())message+=L" Alcune fonti non disponibili: "+errors;
     return true;
 }
+
 bool downloadTheme(Theme& item, std::wstring& error) {
     if(item.remoteUrl.empty()){error=L"Il tema non ha un URL";return false;}
     std::string bytes;
@@ -422,6 +503,27 @@ bool downloadTheme(Theme& item, std::wstring& error) {
 }
 // Create-once protects the original snapshot from subsequent theme changes.
 // Never replace an existing file; the caller verifies its session identity and format.
+bool themeFromSession(const Session& session, Theme& theme, std::wstring& error) {
+    HKEY key=nullptr;
+    LONG e=RegOpenKeyExW(HKEY_CURRENT_USER,regPath(session).c_str(),0,KEY_QUERY_VALUE,&key);
+    if(e!=ERROR_SUCCESS){error=errorCode(L"Sessione non accessibile",e);return false;}
+    std::array<Existing,22> existing{};
+    bool scanned=scanValues(key,existing);
+    RegCloseKey(key);
+    if(!scanned){error=L"Impossibile leggere i colori della sessione.";return false;}
+    theme={};
+    theme.name=session.label+L" - colori attuali";
+    theme.source=L"Personali";
+    theme.available=true;
+    theme.colors=defaultPalette();
+    for(int i=0;i<22;++i) {
+        if(existing[i].present && !parseRgb(existing[i].value,theme.colors[i])) {
+            error=L"Valore RGB non valido nella sessione: Colour"+std::to_wstring(i);
+            return false;
+        }
+    }
+    return true;
+}
 bool preserveOriginalBackupFile(const std::wstring& path, const std::wstring& snapshot, std::wstring& message) {
     HANDLE file = CreateFileW(path.c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr,
                               CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr);

@@ -8,12 +8,16 @@ Lightweight native C++17 / Win32 theme manager for PuTTY sessions. No Python, .N
 
 - Lists PuTTY saved sessions from the current user's Windows registry.
 - Works with PuTTY's 22-color Colour0 to Colour21 palette format.
-- Preview local themes, modify an individual color and save a personal theme.
+- Three-column UI: saved sessions, searchable theme catalog with a source filter, and an interactive live terminal preview.
+- Select any of 22 color swatches, enter a HEX value or use the native RGB color picker. Reset unsaved edits at any time.
+- Save edited palettes under a chosen name as personal themes. Saving a theme does not modify a PuTTY session.
+- Save the currently configured colors of a PuTTY session into a personal theme.
 - Import .reg palette files **as data only** (never execute/merge imported registry files).
 - Export a selected theme as a PuTTY-compatible .reg targeted at the selected session.
 - Apply a theme only to the selected PuTTY session, with a confirmation dialog.
-- **Automatic backup of the session's existing color values before every apply**; restore the **original** colors of the selected session, even after applying multiple different themes. The original snapshot is never overwritten by later changes. The backup distinguishes missing values from defined values.
-- Browse and selectively download themes from GitHub. Local themes continue to work offline.
+- **Automatic original backup before the first change**; restore the **original** colors of the selected session, even after applying multiple different themes. The original snapshot is never overwritten by later changes. The backup distinguishes missing values from defined values.
+- Fetch the catalog from configurable GitHub sources. Selecting an online theme downloads its 22-color palette asynchronously for preview and offline use.
+- Use 'Gestisci fonti...' to edit the source configuration. Existing cached themes remain available offline.
 - The original PuTTY default color palette is available without downloading any themes.
 
 ## Theme sources
@@ -31,6 +35,7 @@ The catalog is fetched via GitHub's public API using HTTPS on demand. This does 
 
 WinPuttier creates, on demand:
 
+- %LOCALAPPDATA%\WinPuttier\sources.ini — editable source list, created on first save (four defaults).
 - %LOCALAPPDATA%\WinPuttier\catalog.tsv — last downloaded list of themes.
 - %LOCALAPPDATA%\WinPuttier\themes\ — personal/imported .reg themes.
 - %LOCALAPPDATA%\WinPuttier\cache\ — downloaded .reg themes.
@@ -60,7 +65,8 @@ GitHub Actions builds and tests with MSVC on windows-2022 and uploads the WinPut
 - The restore button always restores the **first/original** color snapshot for the selected session. No new history is generated. The original backup remains available after restore.
 - Importing or downloading a theme does **not** immediately change a PuTTY session.
 - Imported themes must contain all 22 valid RGB values (0–255).
-- User-specific and downloaded themes are not embedded in the EXE.
+- Personal and downloaded themes are not embedded in the EXE; the built-in default PuTTY palette is available offline.
+- The source editor accepts GitHub API /contents directory endpoints or raw.githubusercontent.com .reg URLs over HTTPS.
 - GitHub API availability and request limits may affect catalog updates; previously downloaded themes remain available locally.
 
 ## Attribution

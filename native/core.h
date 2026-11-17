@@ -14,6 +14,7 @@ struct Theme {
     bool available = true;
 };
 struct Session { std::wstring key, label; };
+struct ThemeSource { std::wstring name, url; };
 
 const Palette& defaultPalette();
 std::wstring dataDir();
@@ -24,6 +25,10 @@ bool ensureDirs();
 std::vector<Session> sessions();
 std::vector<Theme> localThemes();
 std::vector<Theme> remoteCatalog();
+std::wstring sourceConfigText();
+bool updateSourceConfig(const std::wstring& text, std::wstring& message);
+std::vector<ThemeSource> configuredSources();
+bool themeFromSession(const Session& session, Theme& theme, std::wstring& error);
 bool refreshCatalog(std::wstring& message);
 bool downloadTheme(Theme& item, std::wstring& error);
 bool importTheme(const std::wstring& path, std::wstring& message);
