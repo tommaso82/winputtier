@@ -2,7 +2,7 @@
 
 Lightweight native C++17 / Win32 theme manager for PuTTY sessions. No Python, .NET or third-party runtime required.
 
-**Development branch:** Native Windows port of [Puttier by anonimoanemico](https://github.com/anonimoanemico/puttier). The original Python implementation remains in the repository for reference. WinPuttier 0.4.2 is an **experimental** build. GUI and High DPI behavior should be verified on real Windows installations.
+**Main application:** Native Windows port of [Puttier by anonimoanemico](https://github.com/anonimoanemico/puttier). The original Python implementation remains in the repository for reference. WinPuttier 0.4.2 is the Windows native edition. It has been compiled and tested on Windows; the executable is unsigned.
 
 ## Project credits
 

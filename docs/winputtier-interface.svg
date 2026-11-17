@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1550 990" width="1550" height="990" role="img" aria-label="WinPuttier GUI — tre colonne, sessioni PuTTY, libreria temi, anteprima ANSI ed editor colori. Nomi sessioni di esempio.">
+<rect x="0" y="0" width="1550" height="990" rx="0" fill="#f4f7fb" stroke="#f4f7fb" stroke-width="1"/>
+<rect x="0" y="0" width="1550" height="40" rx="0" fill="#fff" stroke="#d7e1ee" stroke-width="1"/>
+<rect x="14" y="13" width="19" height="19" rx="4" fill="#16315e" stroke="#4663a3" stroke-width="1"/>
+<text x="18" y="28" font-family="Segoe UI,Arial,sans-serif" font-size="11" fill="#55c7ff" font-weight="700" >&gt;_</text>
+<text x="43" y="27" font-family="Segoe UI,Arial,sans-serif" font-size="19" fill="#111a2e" font-weight="500" >WinPuttier - Theme Manager</text>
+<text x="20" y="96" font-family="Segoe UI,Arial,sans-serif" font-size="34" fill="#172e55" font-weight="700" >WinPuttier</text>
+<rect x="19" y="67" width="6" height="52" rx="0" fill="#3e6ebc" stroke="#3e6ebc" stroke-width="1"/>
+<text x="20" y="127" font-family="Segoe UI,Arial,sans-serif" font-size="17" fill="#7c8da8" font-weight="450" >PuTTY Theme Manager  ·  Libreria offline  ·  Versione 0.4.2</text>
+<rect x="18" y="157" width="350" height="764" rx="13" fill="#fff" stroke="#d4e2f5" stroke-width="2"/>
+<rect x="387" y="157" width="486" height="764" rx="13" fill="#fff" stroke="#d4e2f5" stroke-width="2"/>
+<rect x="893" y="157" width="638" height="764" rx="13" fill="#fff" stroke="#d4e2f5" stroke-width="2"/>
+<text x="42" y="206" font-family="Segoe UI,Arial,sans-serif" font-size="22" fill="#183052" font-weight="650" >01   SESSIONI PuTTY</text>
+<text x="414" y="206" font-family="Segoe UI,Arial,sans-serif" font-size="22" fill="#183052" font-weight="650" >02   LIBRERIA TEMI</text>
+<text x="919" y="206" font-family="Segoe UI,Arial,sans-serif" font-size="22" fill="#183052" font-weight="650" >03   ANTEPRIMA ANSI · SCORRI PER ESPLORARE</text>
+<rect x="42" y="230" width="301" height="495" rx="0" fill="#fff" stroke="#9da6b3" stroke-width="1"/>
+<text x="49" y="260" font-family="Segoe UI,Arial,sans-serif" font-size="18" fill="#253b59" font-weight="490" >Default Settings</text>
+<text x="49" y="292" font-family="Segoe UI,Arial,sans-serif" font-size="18" fill="#253b59" font-weight="490" >Debian VPS</text>
+<text x="49" y="324" font-family="Segoe UI,Arial,sans-serif" font-size="18" fill="#253b59" font-weight="490" >Oracle ARM</text>
+<text x="49" y="356" font-family="Segoe UI,Arial,sans-serif" font-size="18" fill="#253b59" font-weight="490" >Home Router</text>
+<text x="49" y="388" font-family="Segoe UI,Arial,sans-serif" font-size="18" fill="#253b59" font-weight="490" >Workstation</text>
+<text x="49" y="420" font-family="Segoe UI,Arial,sans-serif" font-size="18" fill="#253b59" font-weight="490" >Development</text>
+<text x="49" y="452" font-family="Segoe UI,Arial,sans-serif" font-size="18" fill="#253b59" font-weight="490" >Test Server</text>
+<text x="49" y="484" font-family="Segoe UI,Arial,sans-serif" font-size="18" fill="#253b59" font-weight="490" >Localhost</text>
+<text x="49" y="516" font-family="Segoe UI,Arial,sans-serif" font-size="18" fill="#253b59" font-weight="490" >Backup Node</text>
+<text x="49" y="548" font-family="Segoe UI,Arial,sans-serif" font-size="18" fill="#253b59" font-weight="490" >Cloud VPS</text>
+<rect x="326" y="232" width="15" height="492" rx="0" fill="#f4f6f9" stroke="#e8eaee" stroke-width="1"/>
+<rect x="328" y="263" width="11" height="154" rx="3" fill="#c6cbd2" stroke="#c6cbd2" stroke-width="1"/>
+<rect x="42" y="745" width="301" height="38" rx="8" fill="#f8faff" stroke="#d4deee" stroke-width="1"/>
+<text x="192.5" y="770" font-family="Segoe UI,Arial,sans-serif" font-size="16" fill="#273f63" font-weight="560" text-anchor="middle">Rileggi sessioni</text>
+<rect x="42" y="795" width="301" height="38" rx="8" fill="#f8faff" stroke="#d4deee" stroke-width="1"/>
+<text x="192.5" y="820" font-family="Segoe UI,Arial,sans-serif" font-size="16" fill="#273f63" font-weight="560" text-anchor="middle">Crea tema dalla sessione</text>
+<rect x="42" y="845" width="301" height="42" rx="8" fill="#3b6dbf" stroke="#3b6dbf" stroke-width="1"/>
+<text x="192.5" y="872" font-family="Segoe UI,Arial,sans-serif" font-size="16" fill="#fff" font-weight="560" text-anchor="middle">Applica tema</text>
+<rect x="42" y="895" width="301" height="38" rx="8" fill="#f8faff" stroke="#d4deee" stroke-width="1"/>
+<text x="192.5" y="920" font-family="Segoe UI,Arial,sans-serif" font-size="16" fill="#273f63" font-weight="560" text-anchor="middle">Ripristina colori originali</text>
+<rect x="414" y="232" width="432" height="36" rx="0" fill="#fff" stroke="#8798b0" stroke-width="1"/>
+<text x="427" y="258" font-family="Segoe UI,Arial,sans-serif" font-size="17" fill="#263e60" font-weight="450" >Tutte</text>
+<text x="824" y="258" font-family="Segoe UI,Arial,sans-serif" font-size="22" fill="#263e60" font-weight="450" >⌄</text>
+<text x="414" y="302" font-family="Segoe UI,Arial,sans-serif" font-size="15" fill="#3b5c89" font-weight="600" >RICERCA TEMI</text>
+<rect x="414" y="319" width="432" height="38" rx="0" fill="#fff" stroke="#b5c0d0" stroke-width="1"/>
+<rect x="414" y="373" width="432" height="395" rx="0" fill="#fff" stroke="#a4adba" stroke-width="1"/>
+<text x="423" y="402" font-family="Segoe UI,Arial,sans-serif" font-size="17" fill="#253d65" font-weight="440" >01. Apple Terminal  -  AlexAkulov</text>
+<text x="423" y="437" font-family="Segoe UI,Arial,sans-serif" font-size="17" fill="#253d65" font-weight="440" >02. Argonaut  -  AlexAkulov</text>
+<text x="423" y="472" font-family="Segoe UI,Arial,sans-serif" font-size="17" fill="#253d65" font-weight="440" >03. Birds Of Paradise  -  AlexAkulov</text>
+<text x="423" y="507" font-family="Segoe UI,Arial,sans-serif" font-size="17" fill="#253d65" font-weight="440" >04. Blazer  -  AlexAkulov</text>
+<text x="423" y="542" font-family="Segoe UI,Arial,sans-serif" font-size="17" fill="#253d65" font-weight="440" >05. Chalkboard  -  AlexAkulov</text>
+<text x="423" y="577" font-family="Segoe UI,Arial,sans-serif" font-size="17" fill="#253d65" font-weight="440" >06. Ciapre  -  AlexAkulov</text>
+<rect x="416" y="588" width="406" height="31" rx="0" fill="#2878cf" stroke="#2878cf" stroke-width="1"/>
+<text x="423" y="612" font-family="Segoe UI,Arial,sans-serif" font-size="17" fill="#fff" font-weight="600" >07. Dark Pastel  -  AlexAkulov</text>
+<text x="423" y="647" font-family="Segoe UI,Arial,sans-serif" font-size="17" fill="#253d65" font-weight="440" >08. Desert  -  AlexAkulov</text>
+<text x="423" y="682" font-family="Segoe UI,Arial,sans-serif" font-size="17" fill="#253d65" font-weight="440" >09. Espresso  -  AlexAkulov</text>
+<text x="423" y="717" font-family="Segoe UI,Arial,sans-serif" font-size="17" fill="#253d65" font-weight="440" >12-bit Rainbow  -  iTerm2-Color-Schemes</text>
+<rect x="828" y="374" width="15" height="392" rx="0" fill="#f4f6f9" stroke="#e7e9ee" stroke-width="1"/>
+<rect x="830" y="398" width="11" height="80" rx="2" fill="#bfc6ce" stroke="#bfc6ce" stroke-width="1"/>
+<text x="414" y="800" font-family="Segoe UI,Arial,sans-serif" font-size="15" fill="#7186a4" font-weight="450" >967 temi disponibili offline · cerca o filtra per raccolta</text>
+<rect x="414" y="821" width="208" height="38" rx="8" fill="#3b6dbf" stroke="#3b6dbf" stroke-width="1"/>
+<text x="518" y="846" font-family="Segoe UI,Arial,sans-serif" font-size="16" fill="#fff" font-weight="560" text-anchor="middle">Sincronizza libreria</text>
+<rect x="635" y="821" width="211" height="38" rx="8" fill="#f8faff" stroke="#d4deee" stroke-width="1"/>
+<text x="740.5" y="846" font-family="Segoe UI,Arial,sans-serif" font-size="16" fill="#273f63" font-weight="560" text-anchor="middle">Gestisci fonti</text>
+<rect x="414" y="871" width="208" height="38" rx="8" fill="#f8faff" stroke="#d4deee" stroke-width="1"/>
+<text x="518" y="896" font-family="Segoe UI,Arial,sans-serif" font-size="16" fill="#273f63" font-weight="560" text-anchor="middle">Importa .reg</text>
+<rect x="635" y="871" width="211" height="38" rx="8" fill="#fff6df" stroke="#efc36e" stroke-width="1"/>
+<text x="740.5" y="896" font-family="Segoe UI,Arial,sans-serif" font-size="16" fill="#9f6513" font-weight="560" text-anchor="middle">☆ Aggiungi preferito</text>
+<rect x="919" y="230" width="585" height="335" rx="0" fill="#fff" stroke="#a5afbe" stroke-width="1"/>
+<text x="941" y="267" font-family="Segoe UI,Arial,sans-serif" font-size="21" fill="#1c355b" font-weight="600" >01   TERMINALE / USCITA LINUX</text>
+<rect x="937" y="282" width="548" height="3" rx="0" fill="#d7e1f1" stroke="#d7e1f1" stroke-width="1"/>
+<rect x="941" y="296" width="542" height="255" rx="0" fill="#050505" stroke="#376dd2" stroke-width="3"/>
+<text x="964" y="330" font-family="Segoe UI,Arial,sans-serif" font-size="18" fill="#24e450" font-weight="550" >root@debian:~/projects$ ls --color=auto</text>
+<text x="964" y="362" font-family="Segoe UI,Arial,sans-serif" font-size="17" fill="#e0e6fa" font-weight="470" >drwxr-xr-x 4  root 4096 documents/</text>
+<text x="964" y="394" font-family="Segoe UI,Arial,sans-serif" font-size="17" fill="#5aee4d" font-weight="470" >-rwxr-xr-x 1 root  728 build.sh</text>
+<text x="964" y="426" font-family="Segoe UI,Arial,sans-serif" font-size="17" fill="#efeeee" font-weight="470" >-rw-r--r-- 1 root  128 config.yml</text>
+<text x="964" y="458" font-family="Segoe UI,Arial,sans-serif" font-size="18" fill="#24e450" font-weight="500" >root@debian$ git status</text>
+<text x="964" y="490" font-family="Segoe UI,Arial,sans-serif" font-size="18" fill="#f55d5d" font-weight="500" >modified: src/terminal.cpp</text>
+<rect x="1487" y="230" width="17" height="335" rx="0" fill="#f0f2f5" stroke="#c5cbd3" stroke-width="1"/>
+<rect x="1490" y="265" width="11" height="65" rx="2" fill="#c4cbd4" stroke="#c4cbd4" stroke-width="1"/>
+<text x="919" y="607" font-family="Segoe UI,Arial,sans-serif" font-size="21" fill="#1c365e" font-weight="650" >EDITOR PALETTE     ·     22 colori</text>
+<rect x="920" y="623" width="44" height="32" rx="1" fill="#b7b7b7" stroke="#8997a9" stroke-width="1"/>
+<rect x="974" y="623" width="44" height="32" rx="1" fill="#ffffff" stroke="#8997a9" stroke-width="1"/>
+<rect x="1028" y="623" width="44" height="32" rx="1" fill="#050505" stroke="#8997a9" stroke-width="1"/>
+<rect x="1026" y="621" width="48" height="36" rx="1" fill="none" stroke="#2476c6" stroke-width="3"/>
+<rect x="1082" y="623" width="44" height="32" rx="1" fill="#404040" stroke="#8997a9" stroke-width="1"/>
+<rect x="1136" y="623" width="44" height="32" rx="1" fill="#000000" stroke="#8997a9" stroke-width="1"/>
+<rect x="1190" y="623" width="44" height="32" rx="1" fill="#02e635" stroke="#8997a9" stroke-width="1"/>
+<rect x="1244" y="623" width="44" height="32" rx="1" fill="#101010" stroke="#8997a9" stroke-width="1"/>
+<rect x="1298" y="623" width="44" height="32" rx="1" fill="#535353" stroke="#8997a9" stroke-width="1"/>
+<rect x="1352" y="623" width="44" height="32" rx="1" fill="#c10000" stroke="#8997a9" stroke-width="1"/>
+<rect x="1406" y="623" width="44" height="32" rx="1" fill="#ff6262" stroke="#8997a9" stroke-width="1"/>
+<rect x="1460" y="623" width="44" height="32" rx="1" fill="#00d62b" stroke="#8997a9" stroke-width="1"/>
+<rect x="920" y="668" width="44" height="32" rx="1" fill="#65f048" stroke="#8997a9" stroke-width="1"/>
+<rect x="974" y="668" width="44" height="32" rx="1" fill="#dada08" stroke="#8997a9" stroke-width="1"/>
+<rect x="1028" y="668" width="44" height="32" rx="1" fill="#fff958" stroke="#8997a9" stroke-width="1"/>
+<rect x="1082" y="668" width="44" height="32" rx="1" fill="#2222cc" stroke="#8997a9" stroke-width="1"/>
+<rect x="1136" y="668" width="44" height="32" rx="1" fill="#5959f2" stroke="#8997a9" stroke-width="1"/>
+<rect x="1190" y="668" width="44" height="32" rx="1" fill="#bb00c2" stroke="#8997a9" stroke-width="1"/>
+<rect x="1244" y="668" width="44" height="32" rx="1" fill="#ef63fa" stroke="#8997a9" stroke-width="1"/>
+<rect x="1298" y="668" width="44" height="32" rx="1" fill="#06bdbf" stroke="#8997a9" stroke-width="1"/>
+<rect x="1352" y="668" width="44" height="32" rx="1" fill="#5af6fa" stroke="#8997a9" stroke-width="1"/>
+<rect x="1406" y="668" width="44" height="32" rx="1" fill="#b7b7b7" stroke="#8997a9" stroke-width="1"/>
+<rect x="1460" y="668" width="44" height="32" rx="1" fill="#fefefe" stroke="#8997a9" stroke-width="1"/>
+<text x="919" y="748" font-family="Segoe UI,Arial,sans-serif" font-size="19" fill="#223e67" font-weight="450" >Colore 2 - Sfondo</text>
+<text x="919" y="782" font-family="Segoe UI,Arial,sans-serif" font-size="17" fill="#344c6c" font-weight="450" >RGB: 0, 0, 0</text>
+<rect x="919" y="793" width="280" height="40" rx="0" fill="#fff" stroke="#9caebe" stroke-width="1"/>
+<text x="932" y="820" font-family="Segoe UI,Arial,sans-serif" font-size="18" fill="#1f304f" font-weight="500" >#000000</text>
+<rect x="1211" y="793" width="290" height="40" rx="8" fill="#f8faff" stroke="#d4deee" stroke-width="1"/>
+<text x="1356" y="819" font-family="Segoe UI,Arial,sans-serif" font-size="16" fill="#273f63" font-weight="560" text-anchor="middle">Conferma HEX</text>
+<rect x="919" y="841" width="280" height="40" rx="8" fill="#f8faff" stroke="#d4deee" stroke-width="1"/>
+<text x="1059" y="867" font-family="Segoe UI,Arial,sans-serif" font-size="16" fill="#273f63" font-weight="560" text-anchor="middle">Selettore RGB</text>
+<rect x="1211" y="841" width="290" height="40" rx="8" fill="#f8faff" stroke="#d4deee" stroke-width="1"/>
+<text x="1356" y="867" font-family="Segoe UI,Arial,sans-serif" font-size="16" fill="#273f63" font-weight="560" text-anchor="middle">Annulla</text>
+<rect x="919" y="892" width="582" height="40" rx="0" fill="#fff" stroke="#a2afbe" stroke-width="1"/>
+<text x="932" y="920" font-family="Segoe UI,Arial,sans-serif" font-size="18" fill="#1e3457" font-weight="450" >07. Dark Pastel Custom</text>
+<text x="23" y="967" font-family="Segoe UI,Arial,sans-serif" font-size="17" fill="#7286a3" font-weight="450" >Seleziona la sessione a sinistra e il tema al centro; l'anteprima non modifica PuTTY.</text>
+</svg>
