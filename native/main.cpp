@@ -442,7 +442,6 @@ void drawLanguageSegment(DRAWITEMSTRUCT* ds) {
     const bool italian=ds->CtlID==ID_LANGUAGE_IT;
     const bool selected=italian?!wp::isEnglish():wp::isEnglish();
     const bool pressed=(ds->itemState&ODS_SELECTED)!=0;
-    const bool focus=(ds->itemState&ODS_FOCUS)!=0;
     RECT r=ds->rcItem;
     HBRUSH white=CreateSolidBrush(RGB(255,255,255));
     FillRect(ds->hDC,&r,white);
@@ -464,11 +463,6 @@ void drawLanguageSegment(DRAWITEMSTRUCT* ds) {
     DrawTextW(ds->hDC,italian?L"IT":L"EN",-1,&r,
               DT_CENTER|DT_VCENTER|DT_SINGLELINE);
     SelectObject(ds->hDC,oldFont);
-    if(focus){
-        RECT indicator=r;
-        InflateRect(&indicator,-pix(4),-pix(3));
-        DrawFocusRect(ds->hDC,&indicator);
-    }
 }
 void paintChrome(HWND wnd) {
     PAINTSTRUCT ps{};
@@ -737,7 +731,7 @@ void createControls(){
     if(!gCardBrush)gCardBrush=CreateSolidBrush(RGB(255,255,255));
     rebuildFonts();
     gAppName=label(L"WinPuttier",8000);
-    gAppSub=label(L"PuTTY Theme Manager  ·  Libreria offline  ·  Versione 0.5.1",8010);
+    gAppSub=label(L"PuTTY Theme Manager  ·  Libreria offline  ·  Versione 0.5.2",8010);
     gLanguageIt=button(L"IT",ID_LANGUAGE_IT);
     gLanguageEn=button(L"EN",ID_LANGUAGE_EN);
     gSessionTitle=label(L"01   SESSIONI PuTTY",8001);
@@ -778,7 +772,7 @@ void createControls(){
 void refreshLanguage(){
     // Relabel controls in place; preserve session/theme selection and unsaved edits.
     const std::pair<HWND,const wchar_t*> labels[]={
-        {gAppSub,L"PuTTY Theme Manager  ·  Libreria offline  ·  Versione 0.5.1"},
+        {gAppSub,L"PuTTY Theme Manager  ·  Libreria offline  ·  Versione 0.5.2"},
         {gSessionTitle,L"01   SESSIONI PuTTY"},
         {gThemesTitle,L"02   LIBRERIA TEMI"},
         {gPreviewTitle,L"03   ANTEPRIMA ANSI · SCORRI PER ESPLORARE"},

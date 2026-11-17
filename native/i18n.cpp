@@ -13,7 +13,7 @@ constexpr wchar_t settingsKey[]=L"Software\\WinPuttier";
 using Pair=std::pair<std::wstring,std::wstring>;
 const std::unordered_map<std::wstring,std::wstring>& dictionary(){
  static const std::unordered_map<std::wstring,std::wstring> translations={
-  {L"PuTTY Theme Manager  ·  Libreria offline  ·  Versione 0.5.1",L"PuTTY Theme Manager  ·  Offline library  ·  Version 0.5.1"},
+  {L"PuTTY Theme Manager  ·  Libreria offline  ·  Versione 0.5.2",L"PuTTY Theme Manager  ·  Offline library  ·  Version 0.5.2"},
   {L"01   SESSIONI PuTTY",L"01   PuTTY SESSIONS"},
   {L"02   LIBRERIA TEMI",L"02   THEME LIBRARY"},
   {L"03   ANTEPRIMA ANSI · SCORRI PER ESPLORARE",L"03   ANSI PREVIEW · SCROLL TO EXPLORE"},
