@@ -57,7 +57,7 @@ The executable is created at `build\Release\WinPuttier.exe`. The same build and 
 
 ## Credits
 
-**[Tommaso (@tommaso82)](https://github.com/tommaso82)** — project creator, co-developer and maintainer.  
+**[Tommaso (@tommaso82)](https://github.com/tommaso82)** — Creator, developer and maintainer.  
 **[OpenAI ChatGPT](https://chatgpt.com/)** — C++/Win32 development and documentation assistance.
 
 WinPuttier is based on [Puttier by anonimoanemico](https://github.com/anonimoanemico/puttier), released under [CC0-1.0](LICENSE). The original Python sources are retained for reference.
