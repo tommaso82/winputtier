@@ -1,6 +1,8 @@
 #include "core.h"
 #include "i18n.h"
 #include "preview.h"
+#include "modern_scroll.h"
+#include "collection_popup.h"
 #include <windows.h>
 #include <commctrl.h>
 #include <commdlg.h>
@@ -40,6 +42,7 @@ const wchar_t* kColorNames[22]={
     L"Ciano",L"Ciano brillante",L"Bianco",L"Bianco brillante"
 };
 HWND gWindow=nullptr,gSessions=nullptr,gThemes=nullptr,gPreview=nullptr,gStatus=nullptr;
+HWND gScrollSessions=nullptr,gScrollThemes=nullptr,gScrollPreview=nullptr;
 HWND gSessionTitle=nullptr,gThemesTitle=nullptr,gPreviewTitle=nullptr,gPaletteTitle=nullptr,gSearchLabel=nullptr,gLibraryStats=nullptr;
 HWND gAppName=nullptr,gAppSub=nullptr,gFavoriteButton=nullptr,gLanguageIt=nullptr,gLanguageEn=nullptr;
 HWND gSourceFilter=nullptr,gSearch=nullptr,gColorTitle=nullptr,gColorRgb=nullptr;
@@ -164,14 +167,15 @@ void layout() {
  const int x1=col.left+pad,x2=col.mid+pad,x3=col.right+pad;
  const int w1=col.leftWidth-2*pad,w2=col.midWidth-2*pad,w3=col.rightWidth-2*pad;
  const int top=col.top,bottom=col.bottom;
- move(gAppName,pix(35),pix(9),pix(340),pix(31));
+ move(gAppName,pix(35),pix(11),pix(340),pix(31));
  move(gAppSub,pix(35),pix(39),pix(275),pix(23));
   // Compact, keyboard-accessible segmented IT / EN language selector.
   move(gLanguageIt,W-pix(124),pix(32),pix(48),pix(26));
   move(gLanguageEn,W-pix(73),pix(32),pix(48),pix(26));
 
  move(gSessionTitle,x1,top+pix(13),w1,pix(27));
- move(gSessions,x1,top+pix(48),w1,bottom-top-pix(230));
+ move(gSessions,x1,top+pix(48),w1-pix(16),bottom-top-pix(230));
+ move(gScrollSessions,x1+w1-pix(14),top+pix(48),pix(12),bottom-top-pix(230));
  int yy=bottom-pix(164);
  move(gReload,x1,yy,w1,pix(31));yy+=pix(38);
  move(gSaveSession,x1,yy,w1,pix(31));yy+=pix(38);
@@ -182,7 +186,8 @@ void layout() {
  move(gSourceFilter,x2,top+pix(46),w2,pix(33));
  move(gSearchLabel,x2,top+pix(82),w2,pix(18));
  move(gSearch,x2+pix(9),top+pix(109),w2-2*pix(9),pix(22));
- move(gThemes,x2,top+pix(144),w2,bottom-top-pix(288));
+ move(gThemes,x2,top+pix(144),w2-pix(16),bottom-top-pix(288));
+ move(gScrollThemes,x2+w2-pix(14),top+pix(144),pix(12),bottom-top-pix(288));
  move(gLibraryStats,x2,bottom-pix(123),w2,pix(20));
  const int half=(w2-pix(8))/2;
  move(gRefresh,x2,bottom-pix(91),half,pix(33));
@@ -194,7 +199,8 @@ void layout() {
  const int previewY=top+pix(45);
  const int swY=bottom-pix(255);
  const int pvHeight=swY-previewY-pix(39);
- move(gPreview,x3,previewY,w3,std::max(pix(155),pvHeight));
+ move(gPreview,x3,previewY,w3-pix(16),std::max(pix(155),pvHeight));
+ move(gScrollPreview,x3+w3-pix(14),previewY,pix(12),std::max(pix(155),pvHeight));
  move(gPaletteTitle,x3,swY-pix(24),w3,pix(22));
  const int swGap=pix(5),swW=std::max(pix(18),(w3-10*swGap)/11);
  for(int i=0;i<22;++i)
@@ -299,6 +305,7 @@ void refreshSessions(){
         SendMessageW(gSessions,LB_SETCURSEL,selected>=0?selected:0,0);
     EnableWindow(gRestore,chosenSession()!=nullptr);
     EnableWindow(gSaveSession,chosenSession()!=nullptr);
+    wp::updateModernScrollbar(gScrollSessions);
     refreshColorEditor();
 }
 void populateSourceFilter(){
@@ -319,21 +326,14 @@ void populateSourceFilter(){
 }
 int showSourceMenu(){
     if(gFilterSources.empty())return -1;
-    HMENU menu=CreatePopupMenu();
-    if(!menu)return -1;
+    std::vector<std::wstring> localized;
+    localized.reserve(gFilterSources.size());
+    int selected=0;
     for(size_t i=0;i<gFilterSources.size();++i){
-        const auto translated=wp::tr(gFilterSources[i]);
-        const UINT state=MF_STRING|(gSelectedSource==gFilterSources[i]?MF_CHECKED:0);
-        AppendMenuW(menu,state,ID_SOURCE_MENU_FIRST+i,translated.c_str());
+        localized.push_back(wp::tr(gFilterSources[i]));
+        if(gSelectedSource==gFilterSources[i])selected=static_cast<int>(i);
     }
-    RECT rect{};GetWindowRect(gSourceFilter,&rect);
-    const UINT command=TrackPopupMenu(menu,
-        TPM_RETURNCMD|TPM_LEFTALIGN|TPM_TOPALIGN|TPM_RIGHTBUTTON,
-        rect.left,rect.bottom,0,gWindow,nullptr);
-    DestroyMenu(menu);
-    if(command<ID_SOURCE_MENU_FIRST)return -1;
-    const size_t index=command-ID_SOURCE_MENU_FIRST;
-    return index<gFilterSources.size()?static_cast<int>(index):-1;
+    return wp::showCollectionPopup(gWindow,gSourceFilter,localized,selected,gDpi);
 }
 void applyThemeSelection(){
     auto theme=chosenCatalogTheme();
@@ -393,6 +393,7 @@ void filterThemes(const std::wstring& preferred=L""){
     if(focus>=0)SendMessageW(gThemes,LB_SETCURSEL,focus,0);
     SendMessageW(gThemes,WM_SETREDRAW,TRUE,0);
     InvalidateRect(gThemes,nullptr,TRUE);
+    wp::updateModernScrollbar(gScrollThemes);
     applyThemeSelection();
 }
 void reloadCatalog(const std::wstring& focus=L"") {
@@ -443,11 +444,11 @@ void drawSessionRow(DRAWITEMSTRUCT* ds){
         paintRounded(ds->hDC,active,RGB(235,242,255),RGB(191,215,252),pix(14));
     }
     const int y=(r.top+r.bottom)/2;
-    RECT tile{r.left+pix(11),y-pix(12),r.left+pix(35),y+pix(12)};
+    RECT tile{r.left+pix(9),y-pix(11),r.left+pix(31),y+pix(11)};
     paintRounded(ds->hDC,tile,RGB(228,237,251),RGB(223,232,248),pix(10));
     drawListText(ds->hDC,L">_",{tile.left+pix(4),tile.top+pix(2),
                   tile.right-pix(2),tile.bottom-pix(2)},gMono,RGB(49,101,198));
-    const RECT label{r.left+pix(44),r.top+pix(3),r.right-pix(10),r.bottom-pix(4)};
+    const RECT label{r.left+pix(39),r.top+pix(2),r.right-pix(10),r.bottom-pix(4)};
     drawListText(ds->hDC,gSessionItems[ds->itemID].label,label,
                  gListNameFont,selected?RGB(31,84,176):RGB(30,45,72));
 }
@@ -463,7 +464,7 @@ void drawThemeRow(DRAWITEMSTRUCT* ds){
         RECT active{r.left+pix(3),r.top+pix(2),r.right-pix(4),r.bottom-pix(2)};
         paintRounded(ds->hDC,active,RGB(235,242,255),RGB(191,215,252),pix(14));
     }
-    const int sw=pix(12),space=pix(2);
+    const int sw=pix(10),space=pix(2);
     const int startX=r.left+pix(12);
     const int startY=(r.top+r.bottom-(2*sw+space))/2;
     if(t.available){
@@ -485,8 +486,8 @@ void drawThemeRow(DRAWITEMSTRUCT* ds){
     }
     const int textX=startX+sw*2+space+pix(12);
     const int right=r.right-pix(33);
-    RECT title{textX,r.top+pix(2),right,r.top+pix(23)};
-    RECT detail{textX,r.top+pix(22),right,r.bottom-pix(2)};
+    RECT title{textX,r.top+pix(1),right,r.top+pix(20)};
+    RECT detail{textX,r.top+pix(19),right,r.bottom-pix(1)};
     drawListText(ds->hDC,t.name,title,gListNameFont,
                  selected?RGB(31,84,176):RGB(30,45,72));
     drawListText(ds->hDC,wp::tr(t.source),detail,gListDetailFont,RGB(107,125,152));
@@ -583,12 +584,8 @@ void paintChrome(HWND wnd) {
     HDC dc=BeginPaint(wnd,&ps);
     RECT r{};GetClientRect(wnd,&r);
     FillRect(dc,&r,gBackgroundBrush);
-    RECT header{0,0,r.right,pix(72)};
+    RECT header{0,pix(8),r.right,pix(63)};
     FillRect(dc,&header,gHeaderBrush);
-    RECT separator{0,pix(71),r.right,pix(72)};
-    HBRUSH sep=CreateSolidBrush(RGB(227,235,248));
-    FillRect(dc,&separator,sep);
-    DeleteObject(sep);
     if(gSessions){
         auto col=columns();
         const int xs[3]={col.left,col.mid,col.right};
@@ -884,15 +881,15 @@ void createControls(){
     if(!gCardBrush)gCardBrush=CreateSolidBrush(RGB(255,255,255));
     rebuildFonts();
     gAppName=label(L"WinPuttier",8000);
-    gAppSub=label(L"PuTTY Theme Manager  ·  Versione 0.6.1",8010);
+    gAppSub=label(L"PuTTY Theme Manager  ·  Versione 0.6.2",8010);
     gLanguageIt=button(L"IT",ID_LANGUAGE_IT);
     gLanguageEn=button(L"EN",ID_LANGUAGE_EN);
     gSessionTitle=label(L"01   SESSIONI PuTTY",8001);
     gThemesTitle=label(L"02   LIBRERIA TEMI",8002);
     gPreviewTitle=label(L"03   ANTEPRIMA ANSI · SCORRI PER ESPLORARE",8003);
     gPaletteTitle=label(L"EDITOR PALETTE    ·    22 colori",8004);
-    gSessions=make(L"LISTBOX",L"",WS_TABSTOP|WS_VSCROLL|LBS_NOTIFY|LBS_OWNERDRAWFIXED|LBS_HASSTRINGS|LBS_NOINTEGRALHEIGHT,ID_SESSIONS);
-    gThemes=make(L"LISTBOX",L"",WS_TABSTOP|WS_VSCROLL|LBS_NOTIFY|LBS_OWNERDRAWFIXED|LBS_HASSTRINGS|LBS_NOINTEGRALHEIGHT,ID_THEMES);
+    gSessions=make(L"LISTBOX",L"",WS_TABSTOP|LBS_NOTIFY|LBS_OWNERDRAWFIXED|LBS_HASSTRINGS|LBS_NOINTEGRALHEIGHT,ID_SESSIONS);
+    gThemes=make(L"LISTBOX",L"",WS_TABSTOP|LBS_NOTIFY|LBS_OWNERDRAWFIXED|LBS_HASSTRINGS|LBS_NOINTEGRALHEIGHT,ID_THEMES);
     gSourceFilter=button(L"",ID_SOURCE_FILTER);
     gSearchLabel=label(L"RICERCA TEMI",8007);
     gLibraryStats=label(L"Libreria locale",8008);
@@ -907,6 +904,9 @@ void createControls(){
     gImport=button(L"Importa .reg",ID_IMPORT);
     gFavoriteButton=button(L"☆ Aggiungi preferito",ID_FAVORITE);
     gPreview=wp::createInlinePreview(gWindow,ID_PREVIEW);
+    gScrollSessions=wp::createModernScrollbar(gWindow,gSessions,false);
+    gScrollThemes=wp::createModernScrollbar(gWindow,gThemes,false);
+    gScrollPreview=wp::createModernScrollbar(gWindow,gPreview,true);
     gColorTitle=label(L"Seleziona uno dei 22 colori",ID_COLOR_TITLE);
     gColorRgb=label(L"RGB",ID_COLOR_RGB);
     for(int i=0;i<22;++i)
@@ -925,7 +925,7 @@ void createControls(){
 void refreshLanguage(){
     // Relabel controls in place; preserve session/theme selection and unsaved edits.
     const std::pair<HWND,const wchar_t*> labels[]={
-        {gAppSub,L"PuTTY Theme Manager  ·  Versione 0.6.1"},
+        {gAppSub,L"PuTTY Theme Manager  ·  Versione 0.6.2"},
         {gSessionTitle,L"01   SESSIONI PuTTY"},
         {gThemesTitle,L"02   LIBRERIA TEMI"},
         {gPreviewTitle,L"03   ANTEPRIMA ANSI · SCORRI PER ESPLORARE"},
@@ -977,8 +977,11 @@ LRESULT CALLBACK mainProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
         SetWindowPos(wnd,nullptr,rect->left,rect->top,rect->right-rect->left,
             rect->bottom-rect->top,SWP_NOACTIVATE|SWP_NOZORDER);
         rebuildFonts();
-        SendMessageW(gSessions,LB_SETITEMHEIGHT,0,pix(36));
-        SendMessageW(gThemes,LB_SETITEMHEIGHT,0,pix(45));
+        SendMessageW(gSessions,LB_SETITEMHEIGHT,0,pix(31));
+        SendMessageW(gThemes,LB_SETITEMHEIGHT,0,pix(39));
+        wp::setModernScrollbarDpi(gScrollSessions,gDpi);
+        wp::setModernScrollbarDpi(gScrollThemes,gDpi);
+        wp::setModernScrollbarDpi(gScrollPreview,gDpi);
         layout();
         refreshColorEditor();
         InvalidateRect(wnd,nullptr,TRUE);
@@ -1001,8 +1004,8 @@ LRESULT CALLBACK mainProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
         return (LRESULT)gCardBrush;
     case WM_MEASUREITEM: {
         auto* mi=reinterpret_cast<MEASUREITEMSTRUCT*>(l);
-        if(mi->CtlID==ID_SESSIONS){mi->itemHeight=pix(36);return TRUE;}
-        if(mi->CtlID==ID_THEMES){mi->itemHeight=pix(45);return TRUE;}
+        if(mi->CtlID==ID_SESSIONS){mi->itemHeight=pix(31);return TRUE;}
+        if(mi->CtlID==ID_THEMES){mi->itemHeight=pix(39);return TRUE;}
         break;
     }
     case WM_DRAWITEM: {

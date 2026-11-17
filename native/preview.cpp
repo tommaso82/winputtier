@@ -69,10 +69,7 @@ int maxScroll(HWND h,State& st) {
 void scrollTo(HWND h,State& st,int value){
  RECT r{};GetClientRect(h,&r);
  st.scroll=std::max(0,std::min(value,maxScroll(h,st)));
- SCROLLINFO si{};si.cbSize=sizeof(si);si.fMask=SIF_RANGE|SIF_PAGE|SIF_POS;
- si.nMin=0;si.nMax=dp(st,1510);
- si.nPage=static_cast<UINT>(r.bottom-r.top);
- si.nPos=st.scroll;SetScrollInfo(h,SB_VERT,&si,TRUE);
+ // Position is held by the canvas; a slim sibling handles the scrollbar chrome.
  InvalidateRect(h,nullptr,FALSE);
 }
 void paintCanvas(HDC dc,HWND h,State& st){
@@ -249,15 +246,13 @@ LRESULT CALLBACK canvasProc(HWND h,UINT msg,WPARAM w,LPARAM l) {
  case WM_MOUSEWHEEL:
    scrollTo(h,*st,st->scroll-GET_WHEEL_DELTA_WPARAM(w)/WHEEL_DELTA*dp(*st,64));return 0;
  case WM_VSCROLL:{
-   SCROLLINFO si{};si.cbSize=sizeof(si);si.fMask=SIF_ALL;
-   GetScrollInfo(h,SB_VERT,&si);
+   RECT viewport{};GetClientRect(h,&viewport);
    int next=st->scroll;
    switch(LOWORD(w)){
      case SB_LINEUP:next-=dp(*st,42);break;
      case SB_LINEDOWN:next+=dp(*st,42);break;
-     case SB_PAGEUP:next-=static_cast<int>(si.nPage);break;
-     case SB_PAGEDOWN:next+=static_cast<int>(si.nPage);break;
-     case SB_THUMBTRACK:next=si.nTrackPos;break;
+     case SB_PAGEUP:next-=std::max(1,viewport.bottom-viewport.top);break;
+     case SB_PAGEDOWN:next+=std::max(1,viewport.bottom-viewport.top);break;
      case SB_TOP:next=0;break;
      case SB_BOTTOM:next=dp(*st,1870);break;
    }
@@ -309,8 +304,24 @@ HWND createInlinePreview(HWND parent,int controlId){
    registered=true;
  }
  return CreateWindowExW(0,klass,L"",
-    WS_CHILD|WS_VISIBLE|WS_VSCROLL|WS_TABSTOP,0,0,200,250,
+    WS_CHILD|WS_VISIBLE|WS_TABSTOP,0,0,200,250,
     parent,(HMENU)(INT_PTR)controlId,GetModuleHandleW(nullptr),nullptr);
+}
+PreviewScrollMetrics inlinePreviewScrollMetrics(HWND preview){
+  PreviewScrollMetrics result{};
+  if(!preview||!IsWindow(preview))return result;
+  auto* st=state(preview);
+  if(!st)return result;
+  RECT rect{};GetClientRect(preview,&rect);
+  result.page=std::max(1,rect.bottom-rect.top);
+  result.total=dp(*st,1870);
+  result.position=st->scroll;
+  return result;
+}
+void setInlinePreviewScroll(HWND preview,int position){
+  if(!preview||!IsWindow(preview))return;
+  auto* st=state(preview);
+  if(st)scrollTo(preview,*st,position);
 }
 void updateInlinePreview(HWND preview,const Theme& theme,int selected,
                          const SessionAppearance& appearance){

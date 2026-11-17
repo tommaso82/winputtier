@@ -1,23 +1,19 @@
-# WinPuttier 0.6.1
+# WinPuttier 0.6.2
 
-WinPuttier visual-polish release for **Windows 10/11 x64**.
+A further native Windows interface refinement for **Windows 10/11 x64**.
 
-## Visual refinements
+## UI refinements
 
-- White main window and a subtle **full-width pale-blue header** extending behind the IT/EN language selector.
-- **Aligned bottom margins:** the final action buttons in all three panels now finish with the same 16px inset.
-- **Clean rounded buttons:** the entire owner-drawn button surface is painted, eliminating rectangular grey backgrounds around pale buttons.
-- **More compact lists:** session rows reduced from 47 to 36 logical pixels, theme rows from 55 to 45; icon and two-line palette labels adjusted accordingly.
-- **Rounded text inputs:** native Windows edit controls are inset into custom rounded white frames. Standard keyboard shortcuts, text editing and clipboard behavior are preserved.
-- **Cleaner collection selector:** rounded owner-drawn control with a native Windows popup for accessible mouse/keyboard navigation.
-- The session names, theme palettes, backup logic, ANSI preview, and bilingual IT/EN switching are unchanged.
-
-**Note:** list and ANSI preview scrollbars remain native for this release. The popup opened by the collection selector is also a native Windows menu. These are intentionally preserved pending a separate interaction-tested scrollbar redesign.
+- **Floating header stripe:** the pale-blue band now leaves white breathing room above and below it; all header content remains within the band.
+- **More compact lists:** saved session rows are 31 logical pixels high and theme rows 39 pixels, with appropriately scaled icons and colour thumbnails.
+- **Slim scrollbars:** session and theme lists, plus the ANSI preview, use matching narrow rounded scrollbar tracks/thumbs. Drag the thumb or click the track; wheel and normal keyboard navigation remain available. The underlying listboxes and preview canvas are still native Win32, not HTML.
+- **Custom collection dropdown:** replaced the grey legacy Windows popup with a rounded white floating menu, soft-blue highlight, current-collection marker, scrolling when necessary, keyboard arrows, Enter/Escape, and click-away dismissal.
+- Kept the 22-colour palette editor, original PuTTY backup and restore, IT/EN switching, and the standalone executable packaging.
 
 ## Download
 
-Download **WinPuttier.exe** from the assets below. Portable Windows x64 executable, unsigned; no installer, Python or .NET needed.
+Download **WinPuttier.exe** from this release's assets. Portable, **unsigned**, no installer, browser runtime, Python or .NET required.
 
-Verify with the attached **SHA256SUMS.txt**.
+Validate the executable with **SHA256SUMS.txt**.
 
-The original Puttier project and all upstream theme authors remain credited in [CREDITS.md](https://github.com/tommaso82/winputtier/blob/main/CREDITS.md).
+The previous releases remain available for comparison. Credits and original theme authors are retained in [CREDITS.md](https://github.com/tommaso82/winputtier/blob/main/CREDITS.md).
