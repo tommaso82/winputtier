@@ -92,8 +92,16 @@ void paintCanvas(HDC dc,HWND h,State& st){
  // 1. Realistic terminal sample, using explicit PuTTY Colour indexes.
  title(dc,st,left,dp(st,12),L"01  TERMINALE / USCITA LINUX",cardW);
  const int terminalY=dp(st,47), terminalH=dp(st,268);
- fill(dc,left,terminalY,cardW,terminalH,bg);
- frame(dc,left,terminalY,cardW,terminalH,RGB(137,147,160));
+ // Rounded terminal surface; the ANSI output itself remains unchanged.
+ HBRUSH terminalBrush=CreateSolidBrush(bg);
+ HPEN terminalPen=CreatePen(PS_SOLID,std::max(1,dp(st,1)),RGB(42,56,76));
+ HGDIOBJ previousBrush=SelectObject(dc,terminalBrush);
+ HGDIOBJ previousPen=SelectObject(dc,terminalPen);
+ RoundRect(dc,left,terminalY,left+cardW,terminalY+terminalH,dp(st,18),dp(st,18));
+ SelectObject(dc,previousBrush);
+ SelectObject(dc,previousPen);
+ DeleteObject(terminalBrush);
+ DeleteObject(terminalPen);
  const int x=left+dp(st,11);int y=terminalY+dp(st,13);
  const int row=dp(st,22);
  int terminalRight=left+cardW-dp(st,10);
@@ -300,7 +308,7 @@ HWND createInlinePreview(HWND parent,int controlId){
    if(!RegisterClassExW(&wc))return nullptr;
    registered=true;
  }
- return CreateWindowExW(WS_EX_CLIENTEDGE,klass,L"",
+ return CreateWindowExW(0,klass,L"",
     WS_CHILD|WS_VISIBLE|WS_VSCROLL|WS_TABSTOP,0,0,200,250,
     parent,(HMENU)(INT_PTR)controlId,GetModuleHandleW(nullptr),nullptr);
 }

@@ -2,7 +2,7 @@
 
 Lightweight native C++17 / Win32 theme manager for PuTTY sessions. No Python, .NET or third-party runtime required.
 
-**Main application:** Native Windows port of [Puttier by anonimoanemico](https://github.com/anonimoanemico/puttier). The original Python implementation remains in the repository for reference. WinPuttier 0.5.2 is the Windows native edition. It has been compiled and tested on Windows; the executable is unsigned.
+**Main application:** Native Windows port of [Puttier by anonimoanemico](https://github.com/anonimoanemico/puttier). The original Python implementation remains in the repository for reference. WinPuttier 0.6.0 is the Windows native edition. It has been compiled and tested on Windows; the executable is unsigned.
 
 ## Project credits
 
@@ -15,6 +15,7 @@ See **[CONTRIBUTORS.md](CONTRIBUTORS.md)** for the full list, including all thre
 
 ## Features
 
+- Native owner-drawn session/theme lists: uniform terminal glyphs for saved sessions; real cached-PuTTY-palette miniatures (background, foreground, green and blue) for themes. Uses standard listbox selection, keyboard navigation and scrolling, without loading theme images or assets.
 - Built-in Italian and English translations for UI, dialogs, preview, and status messages; automatic Windows language detection and a persistent manual override. One standalone EXE.
 - Lists PuTTY saved sessions from the current user's Windows registry.
 - Works with PuTTY's 22-color Colour0 to Colour21 palette format.

@@ -47,6 +47,7 @@ HWND gReload=nullptr,gSaveSession=nullptr,gApply=nullptr,gRestore=nullptr;
 HWND gRefresh=nullptr,gSources=nullptr,gImport=nullptr;
 HWND gPicker=nullptr,gHexApply=nullptr,gReset=nullptr,gSavePersonal=nullptr,gExport=nullptr;
 HFONT gFont=nullptr,gMono=nullptr,gTitleFont=nullptr,gSectionFont=nullptr,gSmallFont=nullptr;
+HFONT gListNameFont=nullptr,gListDetailFont=nullptr,gButtonFont=nullptr;
 HBRUSH gBackgroundBrush=nullptr,gCardBrush=nullptr;
 int gDpi=96;
 std::vector<std::wstring> gFavorites;
@@ -163,7 +164,7 @@ void layout() {
  const int w1=col.leftWidth-2*pad,w2=col.midWidth-2*pad,w3=col.rightWidth-2*pad;
  const int top=col.top,bottom=col.bottom;
  move(gAppName,pix(35),pix(9),pix(340),pix(31));
- move(gAppSub,pix(35),pix(39),W-pix(205),pix(23));
+ move(gAppSub,pix(35),pix(39),pix(275),pix(23));
   // Compact, keyboard-accessible segmented IT / EN language selector.
   move(gLanguageIt,W-pix(124),pix(32),pix(48),pix(26));
   move(gLanguageEn,W-pix(73),pix(32),pix(48),pix(26));
@@ -272,6 +273,7 @@ void refreshColorEditor(){
         if(const auto* session=chosenSession())appearance=wp::sessionAppearance(*session);
         wp::updateInlinePreview(gPreview,shown,gSelectedColor,appearance);
     }
+    if(gThemes&&gDirty)InvalidateRect(gThemes,nullptr,FALSE);
     if(gFavoriteButton) {
         const bool fav=gHaveTheme&&wp::isFavorite(gSelectedTheme,gFavorites);
         localizedText(gFavoriteButton,fav?L"★ Rimuovi preferito":L"☆ Aggiungi preferito");
@@ -369,8 +371,7 @@ void filterThemes(const std::wstring& preferred=L""){
            gSelectedSource!=t.source)continue;
         const auto haystack=toLower(t.name+L" "+t.source);
         if(!query.empty()&&haystack.find(query)==std::wstring::npos)continue;
-        std::wstring name=(wp::isFavorite(t,gFavorites)?L"★  ":L"")+t.name;
-        if(gSelectedSource==L"Tutte")name+=L"  -  "+wp::tr(t.source);
+        std::wstring name=t.name; // Source and favourite state are rendered in the list row.
         SendMessageW(gThemes,LB_ADDSTRING,0,(LPARAM)name.c_str());
         gVisibleThemes.push_back(i);
         if(keyOf(t)==target)focus=(int)gVisibleThemes.size()-1;
@@ -396,19 +397,102 @@ void reloadCatalog(const std::wstring& focus=L"") {
     filterThemes(target);
     localizedText(gLibraryStats,std::to_wstring(gAllThemes.size())+
                   L" temi disponibili offline · cerca o filtra per raccolta");
+    InvalidateRect(gWindow,nullptr,FALSE);
+}
+void paintRounded(HDC dc,const RECT& rect,COLORREF fill,COLORREF border,int radius,int penWidth=1){
+    HBRUSH brush=CreateSolidBrush(fill);
+    HPEN pen=CreatePen(PS_SOLID,std::max(1,penWidth),border);
+    HGDIOBJ oldBrush=SelectObject(dc,brush);
+    HGDIOBJ oldPen=SelectObject(dc,pen);
+    RoundRect(dc,rect.left,rect.top,rect.right,rect.bottom,radius,radius);
+    SelectObject(dc,oldBrush);
+    SelectObject(dc,oldPen);
+    DeleteObject(brush);
+    DeleteObject(pen);
+}
+void drawListText(HDC dc,const std::wstring& value,const RECT& bounds,
+                  HFONT font,COLORREF ink){
+    HGDIOBJ oldFont=SelectObject(dc,font);
+    SetTextColor(dc,ink);
+    SetBkMode(dc,TRANSPARENT);
+    RECT rect=bounds;
+    DrawTextW(dc,value.c_str(),-1,&rect,
+              DT_SINGLELINE|DT_VCENTER|DT_END_ELLIPSIS|DT_NOPREFIX);
+    SelectObject(dc,oldFont);
+}
+void drawSessionRow(DRAWITEMSTRUCT* ds){
+    RECT r=ds->rcItem;
+    FillRect(ds->hDC,&r,gCardBrush);
+    if(ds->itemID==static_cast<UINT>(-1)||ds->itemID>=gSessionItems.size())return;
+    const bool selected=(ds->itemState&ODS_SELECTED)!=0;
+    if(selected){
+        RECT active{r.left+pix(3),r.top+pix(2),r.right-pix(4),r.bottom-pix(2)};
+        paintRounded(ds->hDC,active,RGB(235,242,255),RGB(191,215,252),pix(14));
+    }
+    const int y=(r.top+r.bottom)/2;
+    RECT tile{r.left+pix(11),y-pix(14),r.left+pix(39),y+pix(14)};
+    paintRounded(ds->hDC,tile,RGB(228,237,251),RGB(223,232,248),pix(10));
+    drawListText(ds->hDC,L">_",{tile.left+pix(4),tile.top+pix(2),
+                  tile.right-pix(2),tile.bottom-pix(2)},gMono,RGB(49,101,198));
+    const RECT label{r.left+pix(50),r.top+pix(4),r.right-pix(10),r.bottom-pix(4)};
+    drawListText(ds->hDC,gSessionItems[ds->itemID].label,label,
+                 gListNameFont,selected?RGB(31,84,176):RGB(30,45,72));
+}
+void drawThemeRow(DRAWITEMSTRUCT* ds){
+    RECT r=ds->rcItem;
+    FillRect(ds->hDC,&r,gCardBrush);
+    if(ds->itemID==static_cast<UINT>(-1)||ds->itemID>=gVisibleThemes.size())return;
+    const size_t catalogueIndex=gVisibleThemes[ds->itemID];
+    if(catalogueIndex>=gAllThemes.size())return;
+    const auto& t=gAllThemes[catalogueIndex];
+    const bool selected=(ds->itemState&ODS_SELECTED)!=0;
+    if(selected){
+        RECT active{r.left+pix(3),r.top+pix(2),r.right-pix(4),r.bottom-pix(2)};
+        paintRounded(ds->hDC,active,RGB(235,242,255),RGB(191,215,252),pix(14));
+    }
+    const int sw=pix(13),space=pix(2);
+    const int startX=r.left+pix(12);
+    const int startY=(r.top+r.bottom-(2*sw+space))/2;
+    if(t.available){
+        // Real PuTTY palette colours: background, foreground, green and blue.
+        const auto& colors=(gDirty&&gHaveTheme&&keyOf(t)==gThemeKey)
+                           ?gSelectedTheme.colors:t.colors;
+        const int indices[4]={2,0,10,14};
+        for(int n=0;n<4;++n){
+            const auto& colour=colors[indices[n]];
+            RECT rect{startX+(n%2)*(sw+space),startY+(n/2)*(sw+space),
+                      startX+(n%2)*(sw+space)+sw,startY+(n/2)*(sw+space)+sw};
+            HBRUSH brush=CreateSolidBrush(rgb(colour));
+            FillRect(ds->hDC,&rect,brush);
+            DeleteObject(brush);
+        }
+    }else{
+        RECT unavailable{startX,startY,startX+sw*2+space,startY+sw*2+space};
+        paintRounded(ds->hDC,unavailable,RGB(231,235,241),RGB(211,219,231),pix(6));
+    }
+    const int textX=startX+sw*2+space+pix(12);
+    const int right=r.right-pix(33);
+    RECT title{textX,r.top+pix(6),right,r.top+pix(29)};
+    RECT detail{textX,r.top+pix(29),right,r.bottom-pix(4)};
+    drawListText(ds->hDC,t.name,title,gListNameFont,
+                 selected?RGB(31,84,176):RGB(30,45,72));
+    drawListText(ds->hDC,wp::tr(t.source),detail,gListDetailFont,RGB(107,125,152));
+    const bool favourite=wp::isFavorite(t,gFavorites);
+    RECT star{r.right-pix(32),r.top+pix(6),r.right-pix(8),r.bottom-pix(6)};
+    drawListText(ds->hDC,favourite?L"★":L"☆",star,gSectionFont,
+                 favourite?RGB(224,154,26):RGB(181,195,216));
 }
 void redrawSwatch(DRAWITEMSTRUCT* ds,int index){
     RECT bounds=ds->rcItem;
+    FillRect(ds->hDC,&bounds,gCardBrush);
     const auto& p=gSelectedTheme.colors;
-    COLORREF c=(gHaveTheme&&gSelectedTheme.available)?rgb(p[index]):GetSysColor(COLOR_BTNFACE);
-    HBRUSH brush=CreateSolidBrush(c);FillRect(ds->hDC,&bounds,brush);DeleteObject(brush);
-    HBRUSH border=CreateSolidBrush(index==gSelectedColor?RGB(45,126,220):RGB(114,114,114));
-    RECT borderBounds=bounds;
-    for(int k=0;k<(index==gSelectedColor?3:1);++k){
-        FrameRect(ds->hDC,&borderBounds,border);
-        InflateRect(&borderBounds,-1,-1);
-    }
-    DeleteObject(border);
+    const bool selected=index==gSelectedColor;
+    const COLORREF color=(gHaveTheme&&gSelectedTheme.available)
+                          ?rgb(p[index]):GetSysColor(COLOR_BTNFACE);
+    RECT body{bounds.left+pix(1),bounds.top+pix(1),
+              bounds.right-pix(1),bounds.bottom-pix(1)};
+    paintRounded(ds->hDC,body,color,selected?RGB(44,105,224):RGB(185,198,219),
+                 pix(9),selected?pix(3):pix(1));
 }
 void drawButton(DRAWITEMSTRUCT* ds) {
     RECT r=ds->rcItem;
@@ -417,23 +501,23 @@ void drawButton(DRAWITEMSTRUCT* ds) {
     const bool primary=ds->CtlID==ID_APPLY||ds->CtlID==ID_REFRESH;
     const bool favorite=ds->CtlID==ID_FAVORITE;
     COLORREF back=disabled?RGB(236,240,246):
-       primary?(down?RGB(37,81,151):RGB(53,103,190)):
+       primary?(down?RGB(35,80,174):RGB(47,102,223)):
        favorite?RGB(255,248,225):
-       (down?RGB(230,235,245):RGB(247,249,253));
+       (down?RGB(232,239,250):RGB(249,251,254));
     COLORREF edge=disabled?RGB(222,226,233):
-        primary?RGB(53,103,190):favorite?RGB(237,196,101):RGB(211,221,236);
+        primary?RGB(47,102,223):favorite?RGB(237,196,101):RGB(215,226,242);
     COLORREF foreground=disabled?RGB(151,162,177):
-        primary?RGB(255,255,255):favorite?RGB(135,93,24):RGB(49,65,88);
+        primary?RGB(255,255,255):favorite?RGB(135,93,24):RGB(34,55,89);
     HBRUSH brush=CreateSolidBrush(back);
     HPEN pen=CreatePen(PS_SOLID,pix(1),edge);
     auto oldBrush=SelectObject(ds->hDC,brush);
     auto oldPen=SelectObject(ds->hDC,pen);
-    RoundRect(ds->hDC,r.left+1,r.top+1,r.right-1,r.bottom-1,pix(9),pix(9));
+    RoundRect(ds->hDC,r.left+1,r.top+1,r.right-1,r.bottom-1,pix(14),pix(14));
     SelectObject(ds->hDC,oldBrush);SelectObject(ds->hDC,oldPen);
     DeleteObject(brush);DeleteObject(pen);
     wchar_t txt[256]{};GetWindowTextW(ds->hwndItem,txt,_countof(txt));
     SetTextColor(ds->hDC,foreground);SetBkMode(ds->hDC,TRANSPARENT);
-    auto prior=SelectObject(ds->hDC,gFont);
+    auto prior=SelectObject(ds->hDC,gButtonFont);
     InflateRect(&r,-pix(7),0);
     DrawTextW(ds->hDC,txt,-1,&r,DT_CENTER|DT_VCENTER|DT_SINGLELINE|DT_END_ELLIPSIS);
     SelectObject(ds->hDC,prior);
@@ -474,18 +558,28 @@ void paintChrome(HWND wnd) {
         const int xs[3]={col.left,col.mid,col.right};
         const int ws[3]={col.leftWidth,col.midWidth,col.rightWidth};
         HBRUSH brush=CreateSolidBrush(RGB(255,255,255));
-        HPEN pen=CreatePen(PS_SOLID,pix(1),RGB(222,230,241));
+        HPEN pen=CreatePen(PS_SOLID,pix(1),RGB(221,229,241));
         HGDIOBJ prevBrush=SelectObject(dc,brush);
         HGDIOBJ prevPen=SelectObject(dc,pen);
         for(int i=0;i<3;++i){
-            RoundRect(dc,xs[i],col.top,xs[i]+ws[i],col.bottom,pix(16),pix(16));
+            RoundRect(dc,xs[i],col.top,xs[i]+ws[i],col.bottom,pix(22),pix(22));
         }
         SelectObject(dc,prevBrush);SelectObject(dc,prevPen);
         DeleteObject(brush);DeleteObject(pen);
         // Accent line in the header keeps visual hierarchy without busy decoration.
         RECT bar{pix(18),pix(17),pix(23),pix(49)};
-        HBRUSH blue=CreateSolidBrush(RGB(53,103,190));
+        HBRUSH blue=CreateSolidBrush(RGB(47,102,223));
         FillRect(dc,&bar,blue);DeleteObject(blue);
+        // Count is sourced from the cached library, never a sample value.
+        const std::wstring offline=std::to_wstring(gAllThemes.size())+
+            (wp::isEnglish()?L" offline themes":L" temi offline");
+        RECT badge{pix(328),pix(35),pix(490),pix(60)};
+        paintRounded(dc,badge,RGB(233,249,242),RGB(199,235,219),pix(20));
+        HGDIOBJ previousFont=SelectObject(dc,gSmallFont);
+        SetBkMode(dc,TRANSPARENT);
+        SetTextColor(dc,RGB(0,125,91));
+        DrawTextW(dc,offline.c_str(),-1,&badge,DT_CENTER|DT_VCENTER|DT_SINGLELINE);
+        SelectObject(dc,previousFont);
         // Shared outline behind the two owner-drawn language buttons.
         HBRUSH white=CreateSolidBrush(RGB(255,255,255));
         HPEN frame=CreatePen(PS_SOLID,pix(1),RGB(211,221,236));
@@ -703,8 +797,11 @@ void rebuildFonts(){
     if(gTitleFont)DeleteObject(gTitleFont);
     if(gSectionFont)DeleteObject(gSectionFont);
     if(gSmallFont)DeleteObject(gSmallFont);
-    gFont=CreateFontW(-pix(13),0,0,0,FW_SEMIBOLD,0,0,0,DEFAULT_CHARSET,
-        0,0,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI Semibold");
+    if(gListNameFont)DeleteObject(gListNameFont);
+    if(gListDetailFont)DeleteObject(gListDetailFont);
+    if(gButtonFont)DeleteObject(gButtonFont);
+    gFont=CreateFontW(-pix(13),0,0,0,FW_NORMAL,0,0,0,DEFAULT_CHARSET,
+        0,0,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI");
     gMono=CreateFontW(-pix(13),0,0,0,FW_NORMAL,0,0,0,DEFAULT_CHARSET,
         0,0,CLEARTYPE_QUALITY,FIXED_PITCH,L"Consolas");
     gTitleFont=CreateFontW(-pix(20),0,0,0,FW_BOLD,0,0,0,DEFAULT_CHARSET,
@@ -712,6 +809,12 @@ void rebuildFonts(){
     gSectionFont=CreateFontW(-pix(15),0,0,0,FW_SEMIBOLD,0,0,0,DEFAULT_CHARSET,
         0,0,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI");
     gSmallFont=CreateFontW(-pix(12),0,0,0,FW_SEMIBOLD,0,0,0,DEFAULT_CHARSET,
+        0,0,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI Semibold");
+    gListNameFont=CreateFontW(-pix(13),0,0,0,FW_SEMIBOLD,0,0,0,DEFAULT_CHARSET,
+        0,0,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI Semibold");
+    gListDetailFont=CreateFontW(-pix(11),0,0,0,FW_NORMAL,0,0,0,DEFAULT_CHARSET,
+        0,0,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI");
+    gButtonFont=CreateFontW(-pix(12),0,0,0,FW_SEMIBOLD,0,0,0,DEFAULT_CHARSET,
         0,0,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI Semibold");
     if(gWindow){
         EnumChildWindows(gWindow,[](HWND child,LPARAM)->BOOL{
@@ -727,19 +830,19 @@ void rebuildFonts(){
     }
 }
 void createControls(){
-    if(!gBackgroundBrush)gBackgroundBrush=CreateSolidBrush(RGB(244,247,251));
+    if(!gBackgroundBrush)gBackgroundBrush=CreateSolidBrush(RGB(245,247,251));
     if(!gCardBrush)gCardBrush=CreateSolidBrush(RGB(255,255,255));
     rebuildFonts();
     gAppName=label(L"WinPuttier",8000);
-    gAppSub=label(L"PuTTY Theme Manager  ·  Libreria offline  ·  Versione 0.5.2",8010);
+    gAppSub=label(L"PuTTY Theme Manager  ·  Versione 0.6.0",8010);
     gLanguageIt=button(L"IT",ID_LANGUAGE_IT);
     gLanguageEn=button(L"EN",ID_LANGUAGE_EN);
     gSessionTitle=label(L"01   SESSIONI PuTTY",8001);
     gThemesTitle=label(L"02   LIBRERIA TEMI",8002);
     gPreviewTitle=label(L"03   ANTEPRIMA ANSI · SCORRI PER ESPLORARE",8003);
     gPaletteTitle=label(L"EDITOR PALETTE    ·    22 colori",8004);
-    gSessions=make(L"LISTBOX",L"",WS_TABSTOP|WS_VSCROLL|LBS_NOTIFY|WS_BORDER,ID_SESSIONS);
-    gThemes=make(L"LISTBOX",L"",WS_TABSTOP|WS_VSCROLL|LBS_NOTIFY|WS_BORDER,ID_THEMES);
+    gSessions=make(L"LISTBOX",L"",WS_TABSTOP|WS_VSCROLL|LBS_NOTIFY|LBS_OWNERDRAWFIXED|LBS_HASSTRINGS|LBS_NOINTEGRALHEIGHT,ID_SESSIONS);
+    gThemes=make(L"LISTBOX",L"",WS_TABSTOP|WS_VSCROLL|LBS_NOTIFY|LBS_OWNERDRAWFIXED|LBS_HASSTRINGS|LBS_NOINTEGRALHEIGHT,ID_THEMES);
     gSourceFilter=make(L"COMBOBOX",L"",WS_TABSTOP|WS_VSCROLL|CBS_DROPDOWNLIST,ID_SOURCE_FILTER);
     gSearchLabel=label(L"RICERCA TEMI",8007);
     gLibraryStats=label(L"Libreria locale",8008);
@@ -772,7 +875,7 @@ void createControls(){
 void refreshLanguage(){
     // Relabel controls in place; preserve session/theme selection and unsaved edits.
     const std::pair<HWND,const wchar_t*> labels[]={
-        {gAppSub,L"PuTTY Theme Manager  ·  Libreria offline  ·  Versione 0.5.2"},
+        {gAppSub,L"PuTTY Theme Manager  ·  Versione 0.6.0"},
         {gSessionTitle,L"01   SESSIONI PuTTY"},
         {gThemesTitle,L"02   LIBRERIA TEMI"},
         {gPreviewTitle,L"03   ANTEPRIMA ANSI · SCORRI PER ESPLORARE"},
@@ -845,8 +948,16 @@ LRESULT CALLBACK mainProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
         SetBkColor((HDC)w,RGB(255,255,255));
         SetTextColor((HDC)w,RGB(38,54,77));
         return (LRESULT)gCardBrush;
+    case WM_MEASUREITEM: {
+        auto* mi=reinterpret_cast<MEASUREITEMSTRUCT*>(l);
+        if(mi->CtlID==ID_SESSIONS){mi->itemHeight=pix(47);return TRUE;}
+        if(mi->CtlID==ID_THEMES){mi->itemHeight=pix(55);return TRUE;}
+        break;
+    }
     case WM_DRAWITEM: {
         auto* ds=(DRAWITEMSTRUCT*)l;
+        if(ds->CtlID==ID_SESSIONS){drawSessionRow(ds);return TRUE;}
+        if(ds->CtlID==ID_THEMES){drawThemeRow(ds);return TRUE;}
         if(ds->CtlID>=ID_SWATCH_FIRST&&ds->CtlID<ID_SWATCH_FIRST+22){
             redrawSwatch(ds,(int)ds->CtlID-ID_SWATCH_FIRST);return TRUE;
         }
@@ -937,6 +1048,9 @@ LRESULT CALLBACK mainProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
         if(gTitleFont)DeleteObject(gTitleFont);
         if(gSectionFont)DeleteObject(gSectionFont);
         if(gSmallFont)DeleteObject(gSmallFont);
+        if(gListNameFont)DeleteObject(gListNameFont);
+        if(gListDetailFont)DeleteObject(gListDetailFont);
+        if(gButtonFont)DeleteObject(gButtonFont);
         if(gBackgroundBrush)DeleteObject(gBackgroundBrush);
         if(gCardBrush)DeleteObject(gCardBrush);
         gWindow=nullptr;
