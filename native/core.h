@@ -1,5 +1,7 @@
 #pragma once
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#endif
 #include <windows.h>
 #include <array>
 #include <string>
@@ -25,6 +27,8 @@ bool ensureDirs();
 std::vector<Session> sessions();
 std::vector<Theme> localThemes();
 std::vector<Theme> remoteCatalog();
+std::vector<Theme> parseCatalogText(const std::wstring& content);
+bool validateSourceConfig(const std::wstring& input, std::wstring& error);
 std::wstring sourceConfigText();
 bool updateSourceConfig(const std::wstring& text, std::wstring& message);
 std::vector<ThemeSource> configuredSources();

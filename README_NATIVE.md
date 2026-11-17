@@ -29,7 +29,7 @@ WinPuttier uses these sources:
 3. [teeli/dracula-putty](https://github.com/teeli/dracula-putty) — original Dracula theme.
 4. [AlexAkulov/putty-color-themes](https://github.com/AlexAkulov/putty-color-themes) — 51 PuTTY themes, on-demand download.
 
-The catalog is fetched via GitHub's public API using HTTPS on demand. This does not auto-apply themes or import .reg files into the registry. The AlexAkulov repository does not currently declare a redistribution license, so these themes are **not** vendored in this repository or EXE.
+The catalog is fetched via GitHub's public API using HTTPS on demand. The list of source URLs is editable in the application, without recompiling. This does not auto-apply themes or import .reg files into the registry. The AlexAkulov repository does not currently declare a redistribution license, so these themes are **not** vendored in this repository or EXE.
 
 ## Local storage
 
@@ -66,7 +66,7 @@ GitHub Actions builds and tests with MSVC on windows-2022 and uploads the WinPut
 - Importing or downloading a theme does **not** immediately change a PuTTY session.
 - Imported themes must contain all 22 valid RGB values (0–255).
 - Personal and downloaded themes are not embedded in the EXE; the built-in default PuTTY palette is available offline.
-- The source editor accepts GitHub API /contents directory endpoints or raw.githubusercontent.com .reg URLs over HTTPS.
+- The source editor accepts ordinary HTTPS GitHub repository, folder (tree), or single .reg file (blob) links, as well as GitHub API /contents and raw.githubusercontent.com links.
 - GitHub API availability and request limits may affect catalog updates; previously downloaded themes remain available locally.
 
 ## Attribution

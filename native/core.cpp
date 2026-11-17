@@ -367,9 +367,9 @@ bool importTheme(const std::wstring& path, std::wstring& message) {
     if(!saveCustomTheme(t,out,message))return false;
     message=L"Tema importato: "+name;return true;
 }
-std::vector<Theme> remoteCatalog() {
+std::vector<Theme> parseCatalogText(const std::wstring& content) {
     std::vector<Theme> out;
-    std::wistringstream in(readText(join(dataDir(),L"catalog.tsv")));
+    std::wistringstream in(content);
     std::wstring line;
     while(std::getline(in,line)) {
         auto a=line.find(L'\t'),b=a==std::wstring::npos?a:line.find(L'\t',a+1);
@@ -378,6 +378,9 @@ std::vector<Theme> remoteCatalog() {
         if(t.remoteUrl.rfind(L"https://",0)==0)out.push_back(std::move(t));
     }
     return out;
+}
+std::vector<Theme> remoteCatalog() {
+    return parseCatalogText(readText(join(dataDir(),L"catalog.tsv")));
 }
 std::wstring sourceConfigText() {
     const std::wstring path=join(dataDir(),L"sources.ini");
@@ -463,6 +466,10 @@ bool parseSources(const std::wstring& input,std::vector<ThemeSource>& out,std::w
     return true;
 }
 } // namespace
+bool validateSourceConfig(const std::wstring& input, std::wstring& error) {
+    std::vector<ThemeSource> parsed;
+    return parseSources(input,parsed,error);
+}
 std::vector<ThemeSource> configuredSources() {
     std::vector<ThemeSource> items;std::wstring error;
     parseSources(sourceConfigText(),items,error);

@@ -1,5 +1,3 @@
-#define UNICODE
-#define _UNICODE
 #include "core.h"
 #include <iostream>
 #include <string>
@@ -58,6 +56,27 @@ int main() {
     if(!first||!second||!third||bytes!="original-A\n") {
         std::cerr<<"Original snapshot replaced by subsequent theme changes\n";return 10;
     }
-    std::wcout<<L"All native theme parser and original-backup tests passed\n";
+
+    // Catalog metadata does not imply that a palette has already been downloaded.
+    const auto online=wp::parseCatalogText(
+        L"AlexAkulov\tSolarized Dark\thttps://raw.githubusercontent.com/test/a.reg\n"
+        L"Dracula PuTTY\tDracula\thttps://raw.githubusercontent.com/test/b.reg\n");
+    if(online.size()!=2 || online[0].available || online[1].available ||
+       online[0].source!=L"AlexAkulov" || online[1].name!=L"Dracula") {
+        std::cerr<<"Online catalog theme falsely marked as local\n";return 11;
+    }
+    std::wstring sourceError;
+    const std::wstring sourceGood=
+        L"[Sources]\nExample = https://github.com/example/theme-repo\n"
+        L"ThemeFile = https://github.com/example/theme-repo/blob/master/dracula.reg\n"
+        L"Folder = https://github.com/example/theme-repo/tree/main/putty\n";
+    if(!wp::validateSourceConfig(sourceGood,sourceError)) {
+        std::wcerr<<L"Valid GitHub sources rejected: "<<sourceError<<L"\n";return 12;
+    }
+    const std::wstring sourceBad=L"[Sources]\nEvil = http://example.com/palette.reg\n";
+    if(wp::validateSourceConfig(sourceBad,sourceError)) {
+        std::cerr<<"Insecure source accepted\n";return 13;
+    }
+    std::wcout<<L"Native parser, catalog, source validation and original-backup tests passed\n";
     return 0;
 }
