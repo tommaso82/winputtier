@@ -77,6 +77,14 @@ int main() {
     if(wp::validateSourceConfig(sourceBad,sourceError)) {
         std::cerr<<"Insecure source accepted\n";return 13;
     }
+    // Revision metadata is optional: old catalog files remain loadable.
+    const auto revisions=wp::parseCatalogText(
+        L"Repo\tDark\thttps://raw.githubusercontent.com/a/x.reg\tabc123\n"
+        L"Repo\tLight\thttps://raw.githubusercontent.com/a/y.reg\n");
+    if(revisions.size()!=2 || revisions[0].available || revisions[0].remoteRevision!=L"abc123" ||
+       !revisions[1].remoteRevision.empty() || revisions[1].available) {
+        std::cerr<<"Revision catalog compatibility failure\n";return 14;
+    }
     std::wcout<<L"Native parser, catalog, source validation and original-backup tests passed\n";
     return 0;
 }

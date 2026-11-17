@@ -8,15 +8,18 @@ Lightweight native C++17 / Win32 theme manager for PuTTY sessions. No Python, .N
 
 - Lists PuTTY saved sessions from the current user's Windows registry.
 - Works with PuTTY's 22-color Colour0 to Colour21 palette format.
-- Three-column UI: saved sessions, searchable theme catalog with a source filter, and an interactive live terminal preview.
+- Three-column UI: saved sessions, searchable theme catalog with a source filter, and a live terminal preview.
+- A separate, fully scrollable ANSI preview includes a realistic Linux session, all six special PuTTY colors, all 256 foreground/background pairings (16 foreground colors on 16 backgrounds), and a full 16-color legend. The selected palette color is highlighted throughout the preview.
 - Select any of 22 color swatches, enter a HEX value or use the native RGB color picker. Reset unsaved edits at any time.
 - Save edited palettes under a chosen name as personal themes. Saving a theme does not modify a PuTTY session.
-- Save the currently configured colors of a PuTTY session into a personal theme.
+- "Crea tema dalla sessione" saves the currently configured colors of a PuTTY session into a personal theme.
 - Import .reg palette files **as data only** (never execute/merge imported registry files).
 - Export a selected theme as a PuTTY-compatible .reg targeted at the selected session.
 - Apply a theme only to the selected PuTTY session, with a confirmation dialog.
 - **Automatic original backup before the first change**; restore the **original** colors of the selected session, even after applying multiple different themes. The original snapshot is never overwritten by later changes. The backup distinguishes missing values from defined values.
-- Fetch the catalog from configurable GitHub sources. Selecting an online theme downloads its 22-color palette asynchronously for preview and offline use.
+- "Sincronizza libreria" downloads **only the .reg palette files**, in parallel (up to ten simultaneous HTTPS requests). It does not download ZIP archives or the complete upstream repositories.
+- The application stores the themes in its local cache and uses the repository file revisions for incremental updates where available. Existing local themes remain usable when offline. Selecting a catalog entry never starts a download.
+- A progress counter shows how many .reg files have been processed. Failed downloads are reported and can be retried by synchronizing again.
 - Use 'Gestisci fonti...' to edit the source configuration. Existing cached themes remain available offline.
 - The original PuTTY default color palette is available without downloading any themes.
 
@@ -27,16 +30,17 @@ WinPuttier uses these sources:
 1. [mbadolato/iTerm2-Color-Schemes](https://github.com/mbadolato/iTerm2-Color-Schemes) — PuTTY .reg collection.
 2. [jacek0x/pretty-putty](https://github.com/jacek0x/pretty-putty) — current location of the original Puttier source.
 3. [teeli/dracula-putty](https://github.com/teeli/dracula-putty) — original Dracula theme.
-4. [AlexAkulov/putty-color-themes](https://github.com/AlexAkulov/putty-color-themes) — 51 PuTTY themes, on-demand download.
+4. [AlexAkulov/putty-color-themes](https://github.com/AlexAkulov/putty-color-themes) — 51 PuTTY themes, downloaded during full library synchronization.
 
-The catalog is fetched via GitHub's public API using HTTPS on demand. The list of source URLs is editable in the application, without recompiling. This does not auto-apply themes or import .reg files into the registry. The AlexAkulov repository does not currently declare a redistribution license, so these themes are **not** vendored in this repository or EXE.
+The catalog index is refreshed from GitHub when you synchronize the library. Only .reg files are downloaded; no archive files are used. The source URL list is editable in the application without recompiling. This does not auto-apply themes or import .reg files into the registry. The AlexAkulov repository does not currently declare a redistribution license, so these themes are **not** vendored in this repository or EXE.
 
 ## Local storage
 
 WinPuttier creates, on demand:
 
 - %LOCALAPPDATA%\WinPuttier\sources.ini — editable source list, created on first save (four defaults).
-- %LOCALAPPDATA%\WinPuttier\catalog.tsv — last downloaded list of themes.
+- %LOCALAPPDATA%\WinPuttier\catalog.tsv — last synchronized theme list.
+- %LOCALAPPDATA%\WinPuttier\sync-index.tsv — last successfully synchronized file revisions.
 - %LOCALAPPDATA%\WinPuttier\themes\ — personal/imported .reg themes.
 - %LOCALAPPDATA%\WinPuttier\cache\ — downloaded .reg themes.
 - %LOCALAPPDATA%\WinPuttier\backups\ — per-session backup snapshots (.wpb).
@@ -67,7 +71,7 @@ GitHub Actions builds and tests with MSVC on windows-2022 and uploads the WinPut
 - Imported themes must contain all 22 valid RGB values (0–255).
 - Personal and downloaded themes are not embedded in the EXE; the built-in default PuTTY palette is available offline.
 - The source editor accepts ordinary HTTPS GitHub repository, folder (tree), or single .reg file (blob) links, as well as GitHub API /contents and raw.githubusercontent.com links.
-- GitHub API availability and request limits may affect catalog updates; previously downloaded themes remain available locally.
+- GitHub API availability and request limits can affect synchronization; previously downloaded themes remain available locally. Some sources may have no revision identifiers and will be fetched again during synchronization.
 
 ## Attribution
 

@@ -1,4 +1,5 @@
 #include "core.h"
+#include "preview.h"
 #include <windows.h>
 #include <commctrl.h>
 #include <commdlg.h>
@@ -23,11 +24,11 @@ enum : int {
     ID_RELOAD=201, ID_SAVE_SESSION=202, ID_APPLY=203, ID_RESTORE=204,
     ID_REFRESH=205, ID_SOURCES=206, ID_IMPORT=207, ID_DOWNLOAD=208,
     ID_PICKER=209, ID_HEX_APPLY=210, ID_RESET=211, ID_SAVE_PERSONAL=212, ID_EXPORT=213,
-    ID_SWATCH_FIRST=500, ID_TIMER_PREVIEW=800,
+    ID_SWATCH_FIRST=500, ID_PREVIEW_EXPANDED=304,
     ID_MODAL_EDIT=901, ID_MODAL_SAVE=902, ID_MODAL_CANCEL=903
 };
-constexpr UINT WM_CATALOG_DONE=WM_APP+10;
-constexpr UINT WM_DOWNLOAD_DONE=WM_APP+11;
+constexpr UINT WM_SYNC_DONE=WM_APP+10;
+constexpr UINT WM_SYNC_PROGRESS=WM_APP+11;
 
 const wchar_t* kColorNames[22]={
     L"Testo",L"Testo grassetto",L"Sfondo",L"Sfondo grassetto",L"Testo cursore",L"Cursore",
@@ -36,22 +37,22 @@ const wchar_t* kColorNames[22]={
     L"Ciano",L"Ciano brillante",L"Bianco",L"Bianco brillante"
 };
 HWND gWindow=nullptr,gSessions=nullptr,gThemes=nullptr,gPreview=nullptr,gStatus=nullptr;
-HWND gSessionTitle=nullptr,gThemesTitle=nullptr,gPreviewTitle=nullptr,gPaletteTitle=nullptr;
+HWND gSessionTitle=nullptr,gThemesTitle=nullptr,gPreviewTitle=nullptr,gPaletteTitle=nullptr,gSearchLabel=nullptr,gLibraryStats=nullptr,gPreviewExpanded=nullptr;
 HWND gSourceFilter=nullptr,gSearch=nullptr,gColorTitle=nullptr,gColorRgb=nullptr;
 HWND gHex=nullptr,gPersonalName=nullptr,gSwatches[22]{};
 HWND gReload=nullptr,gSaveSession=nullptr,gApply=nullptr,gRestore=nullptr;
-HWND gRefresh=nullptr,gSources=nullptr,gImport=nullptr,gDownload=nullptr;
+HWND gRefresh=nullptr,gSources=nullptr,gImport=nullptr;
 HWND gPicker=nullptr,gHexApply=nullptr,gReset=nullptr,gSavePersonal=nullptr,gExport=nullptr;
 HFONT gFont=nullptr,gMono=nullptr;
 std::vector<wp::Session> gSessionItems;
 std::vector<wp::Theme> gAllThemes;
 std::vector<size_t> gVisibleThemes;
-std::wstring gThemeKey, gPreviewFailedKey, gActiveDownloadKey, gSelectedSource=L"Tutte";
+std::wstring gThemeKey, gSelectedSource=L"Tutte";
 wp::Theme gSelectedTheme;
 wp::Palette gUneditedPalette{};
-bool gHaveTheme=false,gDirty=false,gRefreshing=false,gDownloading=false;
+bool gHaveTheme=false,gDirty=false,gSyncing=false;
 int gSelectedColor=2;
-struct DownloadResult { std::wstring key,error; bool ok=false; };
+struct SyncResult { bool success=false; std::wstring message; };
 
 COLORREF rgb(const wp::Color& c){return RGB(c.r,c.g,c.b);}
 std::wstring textOf(HWND h) {
@@ -116,31 +117,33 @@ void layout() {
     move(gRestore,xa,sy,a,34);
     // Middle: one stable source filter and a searchable theme catalog.
     move(gSourceFilter,xb,42,b,300);
-    move(gSearch,xb,81,b,28);
-    move(gThemes,xb,119,b,H-330);
+    move(gSearchLabel,xb,80,b,20);
+    move(gSearch,xb,105,b,28);
+    move(gThemes,xb,143,b,H-380);
+    move(gLibraryStats,xb,H-228,b,23);
     int by=H-194;
     move(gRefresh,xb,by,b/2-5,32);
     move(gSources,xb+b/2+5,by,b/2-5,32);by+=40;
-    move(gImport,xb,by,b/2-5,32);
-    move(gDownload,xb+b/2+5,by,b/2-5,32);
+    move(gImport,xb,by,b,32);
     // Right: live preview and the complete RGB/HEX editor.
     move(gPreview,xc,42,c,204);
-    move(gPaletteTitle,xc,257,c,25);
+    move(gPreviewExpanded,xc,253,c,31);
+    move(gPaletteTitle,xc,292,c,25);
     const int swGap=5,swW=(c-10*swGap)/11;
     for(int i=0;i<22;++i){
-        move(gSwatches[i],xc+(i%11)*(swW+swGap),288+(i/11)*35,swW,29);
+        move(gSwatches[i],xc+(i%11)*(swW+swGap),325+(i/11)*35,swW,29);
     }
-    move(gColorTitle,xc,373,c,25);
-    move(gColorRgb,xc,399,c,23);
-    move(gHex,xc,432,c*38/100,29);
+    move(gColorTitle,xc,409,c,25);
+    move(gColorRgb,xc,435,c,23);
+    move(gHex,xc,468,c*38/100,29);
     const int rx=xc+c*38/100+7, rem=c-c*38/100-7;
-    move(gHexApply,rx,432,rem,29);
-    int actionsY=470;
+    move(gHexApply,rx,468,rem,29);
+    int actionsY=506;
     move(gPicker,xc,actionsY,c/2-4,32);
     move(gReset,xc+c/2+4,actionsY,c/2-4,32);
-    move(gPersonalName,xc,525,c,29);
-    move(gSavePersonal,xc,564,c/2-4,33);
-    move(gExport,xc+c/2+4,564,c/2-4,33);
+    move(gPersonalName,xc,560,c,29);
+    move(gSavePersonal,xc,601,c/2-4,33);
+    move(gExport,xc+c/2+4,601,c/2-4,33);
     move(gStatus,gap,bottom,W-2*gap,30);
 }
 bool filePicker(bool save,std::wstring& filename,const std::wstring& suggested=L""){
@@ -177,7 +180,7 @@ void refreshColorEditor(){
     EnableWindow(gExport,usable);
     EnableWindow(gPersonalName,usable);
     EnableWindow(gApply,usable&&chosenSession()!=nullptr);
-    EnableWindow(gDownload,gHaveTheme&&!usable);
+    EnableWindow(gPreviewExpanded,usable);
     for(auto sw:gSwatches)EnableWindow(sw,usable);
     if(usable){
         const auto& c=gSelectedTheme.colors[gSelectedColor];
@@ -194,6 +197,7 @@ void refreshColorEditor(){
     }
     for(auto sw:gSwatches)InvalidateRect(sw,nullptr,TRUE);
     redrawPreview();
+    if(usable)wp::updateExpandedPreview(gSelectedTheme,gSelectedColor);
 }
 void selectColor(int index){
     if(index<0||index>21)return;
@@ -262,12 +266,8 @@ void applyThemeSelection(){
     const std::wstring suggestion=theme->name+L" Custom";
     SetWindowTextW(gPersonalName,suggestion.c_str());
     refreshColorEditor();
-    if(!theme->available){
-        message(L"Caricamento dell'anteprima dal catalogo online...");
-        KillTimer(gWindow,ID_TIMER_PREVIEW);
-        if(!gDownloading && gPreviewFailedKey!=gThemeKey)
-            SetTimer(gWindow,ID_TIMER_PREVIEW,280,nullptr);
-    }
+    if(!theme->available)
+        message(L"Tema solo online. Usa Sincronizza libreria per ottenere tutti i file .reg.");
 }
 void filterThemes(const std::wstring& preferred=L""){
     std::wstring target=preferred.empty()?gThemeKey:preferred;
@@ -313,6 +313,10 @@ void reloadCatalog(const std::wstring& focus=L""){
         });
     populateSourceFilter();
     filterThemes(selected);
+    size_t local=0;
+    for(const auto& t:gAllThemes)if(t.available)++local;
+    SetWindowTextW(gLibraryStats,(L"Temi offline: "+std::to_wstring(local)+
+        L" / "+std::to_wstring(gAllThemes.size())+L" (inclusi i personali)").c_str());
 }
 void redrawSwatch(DRAWITEMSTRUCT* ds,int index){
     RECT bounds=ds->rcItem;
@@ -341,9 +345,9 @@ void drawPreview(DRAWITEMSTRUCT* ds){
     if(!gHaveTheme){
         add(x,0,L"Seleziona un tema per vedere l'anteprima.");
     }else if(!gSelectedTheme.available){
-        add(x,0,L"Anteprima online");
+        add(x,0,L"Tema disponibile nel catalogo.");
         y+=30;
-        add(x,0,L"Scaricamento della palette in corso...");
+        add(x,0,L"Premi Sincronizza libreria per scaricarlo.");
     }else{
         add(x,0,L"user@server:");
         add(x+111,14,L"~/projects");
@@ -437,6 +441,7 @@ void savePersonalTheme(wp::Theme theme,bool afterSession=false){
     if(!wp::saveCustomTheme(theme,path,error)){message(error);return;}
     gDirty=false;gThemeKey.clear();
     gSelectedSource=L"Personali";
+    SetWindowTextW(gSearch,L"");
     reloadCatalog(keyOf(theme));
     message(L"Tema personale salvato: "+name+L". Nessuna modifica alle sessioni PuTTY.");
 }
@@ -482,31 +487,19 @@ void restoreOriginal(){
     wp::restoreLastBackup(*session,feedback);
     message(feedback);
 }
-void downloadAsync(const wp::Theme& item){
-    if(gDownloading||item.available||item.remoteUrl.empty())return;
-    gDownloading=true;
-    gActiveDownloadKey=keyOf(item);
-    EnableWindow(gDownload,FALSE);
-    const HWND target=gWindow;
-    const std::wstring key=gActiveDownloadKey;
-    message(L"Scaricamento palette per anteprima: "+item.name+L"...");
-    std::thread([item,target,key](){
-        auto* result=new DownloadResult{};
-        result->key=key;
-        auto copy=item;
-        result->ok=wp::downloadTheme(copy,result->error);
-        if(!PostMessageW(target,WM_DOWNLOAD_DONE,0,(LPARAM)result))delete result;
-    }).detach();
-}
-void refreshAsync(){
-    if(gRefreshing)return;
-    gRefreshing=true;EnableWindow(gRefresh,FALSE);
-    message(L"Aggiornamento catalogo dalle fonti configurate...");
+void syncAsync() {
+    if(gSyncing)return;
+    gSyncing=true;
+    EnableWindow(gRefresh,FALSE);
+    message(L"Sincronizzazione raccolte: scaricamento dei soli file .reg ...");
     const HWND target=gWindow;
     std::thread([target](){
-        auto* result=new std::wstring;
-        wp::refreshCatalog(*result);
-        if(!PostMessageW(target,WM_CATALOG_DONE,0,(LPARAM)result))delete result;
+        auto* result=new SyncResult{};
+        result->success=wp::syncLibrary(result->message,[target](size_t done,size_t total){
+            auto* progress=new std::pair<size_t,size_t>(done,total);
+            if(!PostMessageW(target,WM_SYNC_PROGRESS,0,(LPARAM)progress))delete progress;
+        });
+        if(!PostMessageW(target,WM_SYNC_DONE,0,(LPARAM)result))delete result;
     }).detach();
 }
 
@@ -570,7 +563,7 @@ void manageSources(){
         if(!IsDialogMessageW(dialog,&m)){TranslateMessage(&m);DispatchMessageW(&m);}
     }
     EnableWindow(gWindow,TRUE);SetForegroundWindow(gWindow);
-    if(modal.saved)refreshAsync();
+    if(modal.saved){reloadCatalog();message(L"Fonti aggiornate. Premi Sincronizza libreria per aggiornare i file .reg.");}
 }
 void createControls(){
     gFont=CreateFontW(-16,0,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,
@@ -584,17 +577,19 @@ void createControls(){
     gSessions=make(L"LISTBOX",L"",WS_TABSTOP|WS_VSCROLL|LBS_NOTIFY|WS_BORDER,ID_SESSIONS);
     gThemes=make(L"LISTBOX",L"",WS_TABSTOP|WS_VSCROLL|LBS_NOTIFY|WS_BORDER,ID_THEMES);
     gSourceFilter=make(L"COMBOBOX",L"",WS_TABSTOP|WS_VSCROLL|CBS_DROPDOWNLIST,ID_SOURCE_FILTER);
+    gSearchLabel=label(L"Cerca tema o fonte:",8007);
+    gLibraryStats=label(L"Temi offline: -",8008);
     gSearch=edit(L"",ID_SEARCH);
     SendMessageW(gSearch,EM_SETCUEBANNER,TRUE,(LPARAM)L"Cerca tema o fonte...");
     gReload=button(L"Rileggi sessioni",ID_RELOAD);
-    gSaveSession=button(L"Salva colori sessione come tema",ID_SAVE_SESSION);
+    gSaveSession=button(L"Crea tema dalla sessione",ID_SAVE_SESSION);
     gApply=button(L"Applica tema alla sessione",ID_APPLY);
     gRestore=button(L"Ripristina colori ORIGINALI",ID_RESTORE);
-    gRefresh=button(L"Aggiorna catalogo",ID_REFRESH);
+    gRefresh=button(L"Sincronizza libreria",ID_REFRESH);
     gSources=button(L"Gestisci fonti...",ID_SOURCES);
     gImport=button(L"Importa .reg",ID_IMPORT);
-    gDownload=button(L"Scarica selezionato",ID_DOWNLOAD);
     gPreview=make(L"STATIC",L"",WS_BORDER|SS_OWNERDRAW,ID_PREVIEW);
+    gPreviewExpanded=button(L"Apri anteprima ANSI completa...",ID_PREVIEW_EXPANDED);
     gColorTitle=label(L"Seleziona un colore",ID_COLOR_TITLE);
     gColorRgb=label(L"RGB",ID_COLOR_RGB);
     for(int i=0;i<22;++i){
@@ -631,23 +626,12 @@ LRESULT CALLBACK mainProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
         }
         break;
     }
-    case WM_TIMER:{
-        if(w==ID_TIMER_PREVIEW){
-            KillTimer(wnd,ID_TIMER_PREVIEW);
-            if(!gDownloading&&gHaveTheme&&!gSelectedTheme.available&&
-               keyOf(gSelectedTheme)!=gPreviewFailedKey)
-                downloadAsync(gSelectedTheme);
-            return 0;
-        }
-        break;
-    }
     case WM_COMMAND:{
         int id=LOWORD(w),notification=HIWORD(w);
         if(id==ID_SESSIONS&&notification==LBN_SELCHANGE){
             refreshColorEditor();return 0;
         }
         if(id==ID_THEMES&&notification==LBN_SELCHANGE){
-            KillTimer(wnd,ID_TIMER_PREVIEW);
             applyThemeSelection();return 0;
         }
         if(id==ID_SOURCE_FILTER&&notification==CBN_SELCHANGE){
@@ -672,11 +656,11 @@ LRESULT CALLBACK mainProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
         case ID_SAVE_SESSION:saveSessionAsTheme();break;
         case ID_APPLY:applyToSession();break;
         case ID_RESTORE:restoreOriginal();break;
-        case ID_REFRESH:refreshAsync();break;
+        case ID_REFRESH:syncAsync();break;
         case ID_SOURCES:manageSources();break;
         case ID_IMPORT:importReg();break;
-        case ID_DOWNLOAD:
-            if(gHaveTheme&&!gSelectedTheme.available){gPreviewFailedKey.clear();downloadAsync(gSelectedTheme);}
+        case ID_PREVIEW_EXPANDED:
+            if(gHaveTheme&&gSelectedTheme.available)wp::showExpandedPreview(wnd,gSelectedTheme,gSelectedColor);
             break;
         case ID_PICKER:colorPicker();break;
         case ID_HEX_APPLY:applyHex();break;
@@ -686,32 +670,22 @@ LRESULT CALLBACK mainProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
         }
         return 0;
     }
-    case WM_CATALOG_DONE:{
-        std::unique_ptr<std::wstring> response((std::wstring*)l);
-        gRefreshing=false;EnableWindow(gRefresh,TRUE);
-        reloadCatalog();message(*response);
+    case WM_SYNC_PROGRESS:{
+        std::unique_ptr<std::pair<size_t,size_t>> p((std::pair<size_t,size_t>*)l);
+        if(gSyncing)message(L"Sincronizzazione file .reg: "+std::to_wstring(p->first)+
+                             L" / "+std::to_wstring(p->second));
         return 0;
     }
-    case WM_DOWNLOAD_DONE:{
-        std::unique_ptr<DownloadResult> response((DownloadResult*)l);
-        gDownloading=false;gActiveDownloadKey.clear();
-        if(response->ok){
-            auto selected=gThemeKey;
-            // Re-load preserves selected theme, including its original source.
-            reloadCatalog(selected);
-            message(L"Palette scaricata e disponibile offline.");
-        }else{
-            gPreviewFailedKey=response->key;
-            message(L"Impossibile ottenere la palette: "+response->error);
-        }
-        if(gHaveTheme&&!gSelectedTheme.available&&keyOf(gSelectedTheme)!=gPreviewFailedKey){
-            SetTimer(wnd,ID_TIMER_PREVIEW,280,nullptr);
-        }
+    case WM_SYNC_DONE:{
+        std::unique_ptr<SyncResult> result((SyncResult*)l);
+        gSyncing=false;
+        EnableWindow(gRefresh,TRUE);
+        reloadCatalog();
+        message(result->message);
         return 0;
     }
     case WM_CLOSE:DestroyWindow(wnd);return 0;
     case WM_DESTROY:
-        KillTimer(wnd,ID_TIMER_PREVIEW);
         if(gMono)DeleteObject(gMono);
         if(gFont)DeleteObject(gFont);
         gWindow=nullptr;

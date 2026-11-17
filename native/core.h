@@ -6,6 +6,7 @@
 #include <array>
 #include <string>
 #include <vector>
+#include <functional>
 
 namespace wp {
 struct Color { int r=0, g=0, b=0; };
@@ -14,6 +15,7 @@ struct Theme {
     std::wstring name, source, remoteUrl;
     Palette colors{};
     bool available = true;
+    std::wstring remoteRevision;
 };
 struct Session { std::wstring key, label; };
 struct ThemeSource { std::wstring name, url; };
@@ -34,6 +36,7 @@ bool updateSourceConfig(const std::wstring& text, std::wstring& message);
 std::vector<ThemeSource> configuredSources();
 bool themeFromSession(const Session& session, Theme& theme, std::wstring& error);
 bool refreshCatalog(std::wstring& message);
+bool syncLibrary(std::wstring& message, const std::function<void(size_t,size_t)>& progress);
 bool downloadTheme(Theme& item, std::wstring& error);
 bool importTheme(const std::wstring& path, std::wstring& message);
 bool saveCustomTheme(const Theme& theme, const std::wstring& path, std::wstring& error);

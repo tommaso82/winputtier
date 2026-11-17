@@ -9,6 +9,9 @@
 #include <iomanip>
 #include <memory>
 #include <set>
+#include <atomic>
+#include <thread>
+#include <unordered_map>
 
 #pragma comment(lib, "winhttp.lib")
 #pragma comment(lib, "shell32.lib")
@@ -232,11 +235,11 @@ std::vector<Theme> parseContents(const std::string& body, const std::wstring& so
         }
         if(depth!=0)break;
         const auto obj=body.substr(begin,pos-begin);
-        auto name=jsonField(obj,"name"), url=jsonField(obj,"download_url");
+        auto name=jsonField(obj,"name"), url=jsonField(obj,"download_url"), revision=jsonField(obj,"sha");
         if(name.size()>4 && name.substr(name.size()-4)==".reg" && url.rfind("https://",0)==0) {
             Theme t;
             t.name=utf8ToWide(name.substr(0,name.size()-4));
-            t.source=source; t.remoteUrl=utf8ToWide(url);t.available=false;
+            t.source=source; t.remoteUrl=utf8ToWide(url);t.available=false;t.remoteRevision=utf8ToWide(revision);
             if(!t.name.empty())result.push_back(std::move(t));
         }
     }
@@ -323,7 +326,13 @@ std::wstring exportReg(const Theme& theme, const std::wstring& sessionKey) {
     return out;
 }
 bool saveCustomTheme(const Theme& theme, const std::wstring& path, std::wstring& error) {
-    if(!writeTextUtf16(path,exportReg(theme,L"WinPuttier%20Theme"))) {
+    const auto temp=path+L".tmp";
+    if(!writeTextUtf16(temp,exportReg(theme,L"WinPuttier%20Theme"))) {
+        DeleteFileW(temp.c_str());
+        error=L"Impossibile preparare il file .reg";return false;
+    }
+    if(!MoveFileExW(temp.c_str(),path.c_str(),MOVEFILE_REPLACE_EXISTING|MOVEFILE_WRITE_THROUGH)){
+        DeleteFileW(temp.c_str());
         error=L"Impossibile salvare il file .reg";return false;
     }
     return true;
@@ -374,7 +383,11 @@ std::vector<Theme> parseCatalogText(const std::wstring& content) {
     while(std::getline(in,line)) {
         auto a=line.find(L'\t'),b=a==std::wstring::npos?a:line.find(L'\t',a+1);
         if(a==std::wstring::npos||b==std::wstring::npos)continue;
-        Theme t;t.source=line.substr(0,a);t.name=line.substr(a+1,b-a-1);t.remoteUrl=trim(line.substr(b+1));t.available=false;
+        Theme t;t.source=line.substr(0,a);t.name=line.substr(a+1,b-a-1);
+        auto d=line.find(L'\t',b+1);
+        t.remoteUrl=trim(d==std::wstring::npos?line.substr(b+1):line.substr(b+1,d-b-1));
+        if(d!=std::wstring::npos)t.remoteRevision=trim(line.substr(d+1));
+        t.available=false;
         if(t.remoteUrl.rfind(L"https://",0)==0)out.push_back(std::move(t));
     }
     return out;
@@ -511,7 +524,7 @@ bool refreshCatalog(std::wstring& message) {
     std::wstring file;
     for(auto& t:all) {
         for(auto& c:t.name)if(c==L'\t'||c==L'\r'||c==L'\n')c=L' ';
-        file+=t.source+L"\t"+t.name+L"\t"+t.remoteUrl+L"\n";
+        file+=t.source+L"\t"+t.name+L"\t"+t.remoteUrl+L"\t"+t.remoteRevision+L"\n";
     }
     auto temp=join(dataDir(),L"catalog.tmp");
     if(!writeTextUtf8(temp,file)){message=L"Errore scrittura catalogo";return false;}
@@ -536,6 +549,90 @@ bool downloadTheme(Theme& item, std::wstring& error) {
     if(!saveCustomTheme(t,path,error))return false;
     item.colors=t.colors;item.available=true;
     return true;
+}
+// Synchronize only PuTTY palette .reg files. The full upstream repositories can
+// contain hundreds of megabytes of unrelated screenshots and terminal formats.
+// A local revision index makes subsequent synchronizations incremental.
+bool syncLibrary(std::wstring& message, const std::function<void(size_t,size_t)>& progress) {
+    if(!ensureDirs()){message=L"Impossibile creare le cartelle locali.";return false;}
+    std::wstring catalogMessage;
+    if(!refreshCatalog(catalogMessage)){
+        message=L"Sincronizzazione annullata: "+catalogMessage;
+        return false;
+    }
+    auto themes=remoteCatalog();
+    const size_t total=themes.size();
+    if(total==0){message=L"Il catalogo non contiene alcun tema.";return false;}
+
+    const auto markerPath=join(dataDir(),L"sync-index.tsv");
+    std::unordered_map<std::wstring,std::wstring> known;
+    {
+        std::wistringstream input(readText(markerPath));
+        std::wstring line;
+        while(std::getline(input,line)){
+            auto a=line.find(L'\t');
+            if(a==std::wstring::npos)continue;
+            auto b=line.find(L'\t',a+1);
+            if(b==std::wstring::npos)continue;
+            known.emplace(line.substr(0,b),trim(line.substr(b+1)));
+        }
+    }
+    std::vector<unsigned char> result(total,0);
+    std::atomic<size_t> cursor{0},completed{0},downloaded{0},reused{0},failed{0};
+    auto worker=[&](){
+        for(;;){
+            size_t i=cursor.fetch_add(1);
+            if(i>=total)break;
+            const auto& theme=themes[i];
+            const auto key=theme.source+L"\t"+theme.name;
+            const auto cacheFile=folderThemePath(cacheDir(),theme.source,theme.name);
+            wp::Theme checked;
+            const bool exists=GetFileAttributesW(cacheFile.c_str())!=INVALID_FILE_ATTRIBUTES;
+            const bool valid=exists&&readRegFile(cacheFile,checked);
+            auto it=known.find(key);
+            bool unchanged=valid && !theme.remoteRevision.empty() &&
+                            it!=known.end() && it->second==theme.remoteRevision;
+            if(unchanged){
+                result[i]=1; ++reused;
+            } else {
+                Theme copy=theme;
+                std::wstring error;
+                if(downloadTheme(copy,error)) {
+                    result[i]=2;++downloaded;
+                } else {
+                    result[i]=3;++failed;
+                }
+            }
+            size_t done=completed.fetch_add(1)+1;
+            if(progress && (done==total || done%15==0))
+                progress(done,total);
+        }
+    };
+    const size_t workers=std::min<size_t>(10,total);
+    std::vector<std::thread> running;
+    for(size_t i=0;i<workers;++i)running.emplace_back(worker);
+    for(auto& task:running)task.join();
+
+    // Keep successful revisions even if another source/file failed. Never remove
+    // cached palette files, custom themes, or older sync records.
+    for(size_t i=0;i<themes.size();++i)
+        if(result[i]==1||result[i]==2) {
+            const auto& t=themes[i];
+            known[t.source+L"\t"+t.name]=t.remoteRevision;
+        }
+    std::wstring manifest;
+    for(const auto& entry:known)manifest+=entry.first+L"\t"+entry.second+L"\n";
+    const auto temp=join(dataDir(),L"sync-index.tmp");
+    bool saved=writeTextUtf8(temp,manifest);
+    if(saved)saved=MoveFileExW(temp.c_str(),markerPath.c_str(),
+                             MOVEFILE_REPLACE_EXISTING|MOVEFILE_WRITE_THROUGH)!=FALSE;
+    if(!saved)DeleteFileW(temp.c_str());
+    message=L"Temi: "+std::to_wstring(total)+L" | scaricati/aggiornati: "+
+            std::to_wstring(downloaded.load())+L" | invariati: "+
+            std::to_wstring(reused.load())+L" | errori: "+std::to_wstring(failed.load())+L".";
+    if(!saved)message+=L" Attenzione: indice sincronizzazione non salvato.";
+    if(!catalogMessage.empty())message+=L" "+catalogMessage;
+    return failed==0&&saved;
 }
 // Create-once protects the original snapshot from subsequent theme changes.
 // Never replace an existing file; the caller verifies its session identity and format.
