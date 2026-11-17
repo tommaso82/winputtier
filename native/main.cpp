@@ -1,6 +1,3 @@
-#define UNICODE
-#define _UNICODE
-#define WIN32_LEAN_AND_MEAN
 #include "core.h"
 #include <windows.h>
 #include <commctrl.h>
@@ -167,7 +164,7 @@ void draw(DRAWITEMSTRUCT* info) {
         line(L"user@server:~$ ls -la --color=always",10);
         line(L"drwxr-xr-x  2 user users 4096 Nov 17 projects",18);
         line(L"-rw-r--r--  1 user users  248 Nov 17 notes.txt",12);
-        int sw=std::max(12,std::min(44,(rc.right-x-35)/16-5));
+        int sw=std::max(12,std::min(44,static_cast<int>((rc.right-x-35)/16-5)));
         for(int i=0;i<16;++i) {
             RECT patch{x+i*(sw+5),y,x+i*(sw+5)+sw,y+22};
             HBRUSH b=CreateSolidBrush(color(palette[6+i]));
@@ -267,7 +264,7 @@ LRESULT CALLBACK proc(HWND hwnd,UINT msg,WPARAM wpv,LPARAM lpv) {
                           CLIP_DEFAULT_PRECIS,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI");
         gSessionLabel=control(L"STATIC",L"Sessioni PuTTY",0,400);
         gThemeLabel=control(L"STATIC",L"Temi disponibili (locale / online)",0,401);
-        gSessionList=control(L"LISTBOX",L"",WS_BORDER|WS_VSCROLL|WS_TABSTOP|LBS_NOTIFY,ID_SESSIONS);
+        gSessions=control(L"LISTBOX",L"",WS_BORDER|WS_VSCROLL|WS_TABSTOP|LBS_NOTIFY,ID_SESSIONS);
         gThemes=control(L"LISTBOX",L"",WS_BORDER|WS_VSCROLL|WS_TABSTOP|LBS_NOTIFY,ID_THEMES);
         gReload=button(L"Rileggi sessioni",ID_RELOAD);
         gImport=button(L"Importa .reg",ID_IMPORT);
