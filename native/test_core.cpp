@@ -87,14 +87,14 @@ int main() {
     }
     // Cache identity cannot depend on the filesystem-safe representation of
     // a theme's name. "A:B" and "A_B" must not use the same cache file.
-    wp::Theme first;first.source=L"iTerm2";first.name=L"Neon Raincheck: After Hours";
-    wp::Theme second=first;second.name=L"Neon Raincheck_ After Hours";
-    if(wp::cacheFilePath(first)==wp::cacheFilePath(second) ||
-       wp::themeId(first)==wp::themeId(second)){
+    wp::Theme firstTheme;firstTheme.source=L"iTerm2";firstTheme.name=L"Neon Raincheck: After Hours";
+    wp::Theme secondTheme=firstTheme;secondTheme.name=L"Neon Raincheck_ After Hours";
+    if(wp::cacheFilePath(firstTheme)==wp::cacheFilePath(secondTheme) ||
+       wp::themeId(firstTheme)==wp::themeId(secondTheme)){
         std::cerr<<"Theme identity collision after filename sanitization\n";return 15;
     }
-    std::vector<std::wstring> saved{wp::themeId(first)};
-    if(!wp::isFavorite(first,saved) || wp::isFavorite(second,saved)) {
+    std::vector<std::wstring> saved{wp::themeId(firstTheme)};
+    if(!wp::isFavorite(firstTheme,saved) || wp::isFavorite(secondTheme,saved)) {
         std::cerr<<"Favorites do not preserve exact theme identity\n";return 16;
     }
     wp::Session nonexistent{L"WinPuttier-DOES-NOT-EXIST",L"test"};
