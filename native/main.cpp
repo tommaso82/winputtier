@@ -115,7 +115,8 @@ void layout() {
  RECT r{};GetClientRect(gWindow,&r);
  const int W=r.right,H=r.bottom;
  if(W<pix(950)||H<pix(590))return;
- const auto col=columns(),pad=pix(14);
+ const auto col=columns();
+ const int pad=pix(14);
  const int x1=col.left+pad,x2=col.mid+pad,x3=col.right+pad;
  const int w1=col.leftWidth-2*pad,w2=col.midWidth-2*pad,w3=col.rightWidth-2*pad;
  const int top=col.top,bottom=col.bottom;
