@@ -1,10 +1,11 @@
 #include <winver.h>
+#include "winputtier_version.h"
 
 101 ICON "winputtier.ico"
 
 1 VERSIONINFO
- FILEVERSION 0,6,4,0
- PRODUCTVERSION 0,6,4,0
+ FILEVERSION WINPUTTIER_VERSION_RESOURCE
+ PRODUCTVERSION WINPUTTIER_VERSION_RESOURCE
  FILEFLAGSMASK 0x3fL
  FILEFLAGS 0x0L
  FILEOS 0x40004L
@@ -17,11 +18,11 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "WinPuttier Contributors\0"
             VALUE "FileDescription", "WinPuttier - PuTTY Theme Manager\0"
-            VALUE "FileVersion", "0.6.4\0"
+            VALUE "FileVersion", WINPUTTIER_VERSION_TEXT
             VALUE "InternalName", "WinPuttier\0"
             VALUE "OriginalFilename", "WinPuttier.exe\0"
             VALUE "ProductName", "WinPuttier\0"
-            VALUE "ProductVersion", "0.6.4\0"
+            VALUE "ProductVersion", WINPUTTIER_VERSION_TEXT
             VALUE "LegalCopyright", "WinPuttier contributors; original Puttier CC0-1.0\0"
         END
     END

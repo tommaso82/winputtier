@@ -1,4 +1,6 @@
 #include "core.h"
+#include "session_storage.h"
+#include "winputtier_version.h"
 #include <winhttp.h>
 #include <shlobj.h>
 #include <algorithm>
@@ -12,7 +14,6 @@
 #include <atomic>
 #include <thread>
 #include <unordered_map>
-#include <set>
 
 #pragma comment(lib, "winhttp.lib")
 #pragma comment(lib, "shell32.lib")
@@ -121,11 +122,11 @@ std::wstring idForSession(const Session& s) {
     wchar_t out[24]; swprintf_s(out,L"%016llx",(unsigned long long)h);
     return out;
 }
-std::wstring originalBackupPath(const Session& s) {
-    return join(backupDir(), L"original-" + idForSession(s) + L".wpb");
+std::wstring originalBackupPath(const std::wstring& folder, const Session& s) {
+    return join(folder, L"original-" + idForSession(s) + L".wpb");
 }
-std::wstring oldestLegacyBackupPath(const Session& s) {
-    auto pattern = join(backupDir(), L"backup-" + idForSession(s) + L"-*.wpb");
+std::wstring oldestLegacyBackupPath(const std::wstring& folder, const Session& s) {
+    auto pattern = join(folder, L"backup-" + idForSession(s) + L"-*.wpb");
     WIN32_FIND_DATAW data{};
     HANDLE find = FindFirstFileW(pattern.c_str(), &data);
     if (find == INVALID_HANDLE_VALUE) return {};
@@ -136,7 +137,7 @@ std::wstring oldestLegacyBackupPath(const Session& s) {
         }
     } while (FindNextFileW(find, &data));
     FindClose(find);
-    return oldest.empty() ? L"" : join(backupDir(), oldest);
+    return oldest.empty() ? L"" : join(folder, oldest);
 }
 std::wstring backupText(const Session& s, const std::array<Existing,22>& old) {
     std::wstring out=L"WinPuttierBackup1\n"+s.key+L"\n";
@@ -165,7 +166,7 @@ bool httpGet(const std::wstring& url, std::string& out, std::wstring& error, DWO
     p.lpszExtraInfo=extra; p.dwExtraInfoLength=_countof(extra);
     if(!WinHttpCrackUrl(url.c_str(),0,0,&p) || p.nScheme!=INTERNET_SCHEME_HTTPS) { error=L"URL HTTPS non valido"; return false; }
     using H=std::unique_ptr<void,decltype(&WinHttpCloseHandle)>;
-    H h(WinHttpOpen(L"WinPuttier/0.5 (Windows)",WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,WINHTTP_NO_PROXY_NAME,WINHTTP_NO_PROXY_BYPASS,0),WinHttpCloseHandle);
+    H h(WinHttpOpen(L"WinPuttier/" WINPUTTIER_VERSION_WIDE L" (Windows)",WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,WINHTTP_NO_PROXY_NAME,WINHTTP_NO_PROXY_BYPASS,0),WinHttpCloseHandle);
     if(!h){error=L"WinHTTP non disponibile";return false;}
     DWORD timeout=20000;
     WinHttpSetTimeouts(h.get(),10000,10000,timeout,timeout);
@@ -607,39 +608,61 @@ bool updateSourceConfig(const std::wstring& input,std::wstring& message) {
     message=L"Fonti salvate: "+std::to_wstring(checked.size());
     return true;
 }
-bool refreshCatalog(std::wstring& message) {
-    auto sources=configuredSources();
-    std::vector<Theme> all;
+std::vector<Theme> retainUnavailableSources(const std::vector<Theme>& refreshed,
+                                            const std::vector<Theme>& previous,
+                                            const std::vector<std::wstring>& unavailable) {
+    auto catalog = refreshed;
+    for (const auto& theme : previous) {
+        if (std::find(unavailable.begin(), unavailable.end(), theme.source) != unavailable.end())
+            catalog.push_back(theme);
+    }
+    return catalog;
+}
+
+static bool refreshCatalog(std::vector<Theme>& refreshed, std::wstring& message) {
+    const auto sources = configuredSources();
+    std::vector<std::wstring> unavailable;
     std::wstring errors;
+    size_t availableSources = 0;
     for(const auto& src:sources) {
         const auto normalized=normalizeSourceUrl(src.url);
         if(normalized.rfind(L"https://raw.githubusercontent.com/",0)==0) {
             auto begin=normalized.find_last_of(L'/');
             std::wstring name=normalized.substr(begin+1);
             if(name.size()>4)name.resize(name.size()-4);
-            all.push_back({name,src.name,normalized,{},false});
+            refreshed.push_back({name,src.name,normalized,{},false});
+            ++availableSources;
             continue;
         }
         std::string body;std::wstring error;
         if(!httpGet(normalized,body,error,6*1024*1024)) {
-            errors+=src.name+L": "+error+L"; ";continue;
+            unavailable.push_back(src.name);
+            errors+=src.name+L": "+error+L"; ";
+            continue;
         }
+        ++availableSources;
         auto list=parseContents(body,src.name);
-        all.insert(all.end(),list.begin(),list.end());
+        refreshed.insert(refreshed.end(),list.begin(),list.end());
     }
-    if(all.empty()) {message=L"Nessuna fonte disponibile: "+errors;return false;}
+    if (availableSources == 0 && !sources.empty()) {
+        message=L"Nessuna fonte disponibile: "+errors;
+        return false;
+    }
+    for (auto& theme : refreshed)
+        for (auto& c : theme.name)
+            if (c == L'\t' || c == L'\r' || c == L'\n') c = L' ';
+
+    const auto catalog = retainUnavailableSources(refreshed, remoteCatalog(), unavailable);
     std::wstring file;
-    for(auto& t:all) {
-        for(auto& c:t.name)if(c==L'\t'||c==L'\r'||c==L'\n')c=L' ';
-        file+=t.source+L"\t"+t.name+L"\t"+t.remoteUrl+L"\t"+t.remoteRevision+L"\n";
-    }
+    for (const auto& theme : catalog)
+        file += theme.source + L"\t" + theme.name + L"\t" + theme.remoteUrl + L"\t" + theme.remoteRevision + L"\n";
     auto temp=join(dataDir(),L"catalog.tmp");
     if(!writeTextUtf8(temp,file)){message=L"Errore scrittura catalogo";return false;}
     auto target=join(dataDir(),L"catalog.tsv");
     if(!MoveFileExW(temp.c_str(),target.c_str(),MOVEFILE_REPLACE_EXISTING|MOVEFILE_WRITE_THROUGH)){
         DeleteFileW(temp.c_str());message=L"Impossibile aggiornare il catalogo";return false;
     }
-    message=L"Catalogo aggiornato: "+std::to_wstring(all.size())+L" temi.";
+    message=L"Catalogo aggiornato: "+std::to_wstring(catalog.size())+L" temi.";
     if(!errors.empty())message+=L" Alcune fonti non disponibili: "+errors;
     return true;
 }
@@ -663,13 +686,16 @@ bool downloadTheme(Theme& item, std::wstring& error) {
 bool syncLibrary(std::wstring& message, const std::function<void(size_t,size_t)>& progress) {
     if(!ensureDirs()){message=L"Impossibile creare le cartelle locali.";return false;}
     std::wstring catalogMessage;
-    if(!refreshCatalog(catalogMessage)){
+    std::vector<Theme> themes;
+    if(!refreshCatalog(themes, catalogMessage)){
         message=L"Sincronizzazione annullata: "+catalogMessage;
         return false;
     }
-    auto themes=remoteCatalog();
     const size_t total=themes.size();
-    if(total==0){message=L"Il catalogo non contiene alcun tema.";return false;}
+    if (total == 0) {
+        message = catalogMessage;
+        return true;
+    }
 
     const auto markerPath=join(dataDir(),L"sync-index.tsv");
     std::unordered_map<std::wstring,std::wstring> known;
@@ -741,8 +767,6 @@ bool syncLibrary(std::wstring& message, const std::function<void(size_t,size_t)>
     if(!catalogMessage.empty())message+=L" "+catalogMessage;
     return failed==0&&saved;
 }
-// Create-once protects the original snapshot from subsequent theme changes.
-// Never replace an existing file; the caller verifies its session identity and format.
 bool themeFromSession(const Session& session, Theme& theme, std::wstring& error) {
     HKEY key=nullptr;
     LONG e=RegOpenKeyExW(HKEY_CURRENT_USER,regPath(session).c_str(),0,KEY_QUERY_VALUE,&key);
@@ -764,6 +788,7 @@ bool themeFromSession(const Session& session, Theme& theme, std::wstring& error)
     }
     return true;
 }
+// Create once so subsequent theme changes cannot replace the original snapshot.
 bool preserveOriginalBackupFile(const std::wstring& path, const std::wstring& snapshot, std::wstring& message) {
     HANDLE file = CreateFileW(path.c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr,
                               CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr);
@@ -784,32 +809,46 @@ bool preserveOriginalBackupFile(const std::wstring& path, const std::wstring& sn
     }
     return ok;
 }
-bool applyTheme(const Session& session,const Theme& theme,std::wstring& message) {
+namespace {
+bool loadOriginalBackup(const std::wstring& folder, const Session& session,
+                        const std::array<Existing, 22>* current,
+                        std::array<Existing, 22>& original, std::wstring& message) {
+    const auto path = originalBackupPath(folder, session);
+    const DWORD attributes = GetFileAttributesW(path.c_str());
+    if (attributes == INVALID_FILE_ATTRIBUTES && GetLastError() == ERROR_FILE_NOT_FOUND) {
+        const auto legacy = oldestLegacyBackupPath(folder, session);
+        if (!legacy.empty()) {
+            if (!loadBackup(legacy, session, original)) {
+                message = L"Backup precedente non valido; nessuna modifica.";
+                return false;
+            }
+        } else if (current) {
+            original = *current;
+        } else {
+            message = L"Backup originale assente o non valido per questa sessione.";
+            return false;
+        }
+        if (!preserveOriginalBackupFile(path, backupText(session, original), message))
+            return false;
+    }
+    if (!loadBackup(path, session, original)) {
+        message = L"Il backup originale esistente non e' valido. Nessuna modifica effettuata.";
+        return false;
+    }
+    return true;
+}
+} // namespace
+
+bool detail::applyTheme(HKEY registryRoot, const std::wstring& backupFolder,
+                        const Session& session, const Theme& theme, std::wstring& message) {
     HKEY key=nullptr;
-    LONG e=RegOpenKeyExW(HKEY_CURRENT_USER,regPath(session).c_str(),0,KEY_QUERY_VALUE|KEY_SET_VALUE,&key);
+    LONG e=RegOpenKeyExW(registryRoot,regPath(session).c_str(),0,KEY_QUERY_VALUE|KEY_SET_VALUE,&key);
     if(e!=ERROR_SUCCESS){message=errorCode(L"Sessione non accessibile",e);return false;}
     std::array<Existing,22> old{};
     if(!scanValues(key,old)){RegCloseKey(key);message=L"Impossibile leggere i colori correnti; nessuna modifica.";return false;}
-    const auto path=originalBackupPath(session);
     std::array<Existing,22> original{};
-    if(GetFileAttributesW(path.c_str())==INVALID_FILE_ATTRIBUTES) {
-        // For users who ran an older preview build, the oldest historical snapshot
-        // is the original; do not mistake the already modified colors for it.
-        const auto legacy=oldestLegacyBackupPath(session);
-        if(!legacy.empty()) {
-            if(!loadBackup(legacy,session,original)){
-                RegCloseKey(key);message=L"Backup precedente non valido; nessuna modifica.";return false;
-            }
-        } else {
-            original=old;
-        }
-        if(!preserveOriginalBackupFile(path,backupText(session,original),message)){
-            RegCloseKey(key);return false;
-        }
-    }
-    if(!loadBackup(path,session,original)){
+    if (!loadOriginalBackup(backupFolder, session, &old, original, message)) {
         RegCloseKey(key);
-        message=L"Il backup originale esistente non e' valido. Nessuna modifica effettuata.";
         return false;
     }
     bool ok=true;
@@ -820,7 +859,7 @@ bool applyTheme(const Session& session,const Theme& theme,std::wstring& message)
     if(!ok) {
         bool undone=restoreValues(key,old);
         message=undone?L"Scrittura fallita; colori precedenti ripristinati.":
-            L"ERRORE: ripristino parziale. Backup originale: "+path;
+            L"ERRORE: ripristino parziale. Backup originale: "+originalBackupPath(backupFolder, session);
     } else {
         RegFlushKey(key);
         message=L"Tema applicato a "+session.label+L". Il backup originale e' conservato.";
@@ -828,14 +867,15 @@ bool applyTheme(const Session& session,const Theme& theme,std::wstring& message)
     RegCloseKey(key);
     return ok;
 }
-bool restoreLastBackup(const Session& session, std::wstring& message) {
-    const auto path=originalBackupPath(session);
+
+bool detail::restoreLastBackup(HKEY registryRoot, const std::wstring& backupFolder,
+                               const Session& session, std::wstring& message) {
     std::array<Existing,22> original{};
-    if(!loadBackup(path,session,original)){
-        message=L"Backup originale assente o non valido per questa sessione.";return false;
-    }
+    if (!loadOriginalBackup(backupFolder, session, nullptr, original, message))
+        return false;
+
     HKEY key=nullptr;
-    LONG e=RegOpenKeyExW(HKEY_CURRENT_USER,regPath(session).c_str(),0,KEY_QUERY_VALUE|KEY_SET_VALUE,&key);
+    LONG e=RegOpenKeyExW(registryRoot,regPath(session).c_str(),0,KEY_QUERY_VALUE|KEY_SET_VALUE,&key);
     if(e!=ERROR_SUCCESS){message=errorCode(L"Sessione non accessibile",e);return false;}
     std::array<Existing,22> before{};
     if(!scanValues(key,before)){RegCloseKey(key);message=L"Impossibile leggere i colori attuali.";return false;}
@@ -843,11 +883,19 @@ bool restoreLastBackup(const Session& session, std::wstring& message) {
     if(!ok) {
         const bool reversed=restoreValues(key,before);
         message=reversed?L"Ripristino fallito; configurazione precedente conservata.":
-                         L"ERRORE: ripristino parziale. Backup originale: "+path;
+                         L"ERRORE: ripristino parziale. Backup originale: "+originalBackupPath(backupFolder, session);
     } else message=L"Ripristinati i colori ORIGINALI di "+session.label+
                     L". Il backup originale rimane disponibile.";
     RegCloseKey(key);
     return ok;
+}
+
+bool applyTheme(const Session& session, const Theme& theme, std::wstring& message) {
+    return detail::applyTheme(HKEY_CURRENT_USER, backupDir(), session, theme, message);
+}
+
+bool restoreLastBackup(const Session& session, std::wstring& message) {
+    return detail::restoreLastBackup(HKEY_CURRENT_USER, backupDir(), session, message);
 }
 
 } // namespace wp

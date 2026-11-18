@@ -3,6 +3,7 @@
 #include "preview.h"
 #include "modern_scroll.h"
 #include "collection_popup.h"
+#include "winputtier_version.h"
 #include <windows.h>
 #include <commctrl.h>
 #include <commdlg.h>
@@ -324,20 +325,23 @@ void populateSourceFilter(){
     gSelectedSource=was;
     localizedText(gSourceFilter,was);
 }
-int showSourceMenu(){
-    if(gFilterSources.empty())return -1;
-    std::vector<std::wstring> localized;
-    localized.reserve(gFilterSources.size());
-    int selected=0;
-    for(size_t i=0;i<gFilterSources.size();++i){
-        localized.push_back(wp::tr(gFilterSources[i]));
-        if(gSelectedSource==gFilterSources[i])selected=static_cast<int>(i);
+std::wstring showSourceMenu() {
+    // Sync can refresh the collections while the popup is processing messages.
+    const auto sources = gFilterSources;
+    std::vector<std::wstring> labels;
+    labels.reserve(sources.size());
+    int selected = 0;
+    for (size_t i = 0; i < sources.size(); ++i) {
+        labels.push_back(wp::tr(sources[i]));
+        if (gSelectedSource == sources[i]) selected = static_cast<int>(i);
     }
-    return wp::showCollectionPopup(gWindow,gSourceFilter,localized,selected,gDpi);
+    const int result = wp::showCollectionPopup(gWindow, gSourceFilter, labels, selected, gDpi);
+    return result < 0 ? std::wstring{} : sources[result];
 }
 void applyThemeSelection(){
     auto theme=chosenCatalogTheme();
     if(!theme){
+        if (gDirty) return;
         gHaveTheme=false;gThemeKey.clear();
         refreshColorEditor();return;
     }
@@ -352,12 +356,13 @@ void applyThemeSelection(){
         refreshColorEditor();
         return;
     }
-    if(gDirty&&MessageBoxW(gWindow,L"Scartare le modifiche non salvate della palette?",
-        L"WinPuttier",MB_YESNO|MB_ICONQUESTION)!=IDYES){
-        for(size_t i=0;i<gVisibleThemes.size();++i)
-            if(keyOf(gAllThemes[gVisibleThemes[i]])==gThemeKey){
-                SendMessageW(gThemes,LB_SETCURSEL,i,0);return;
-            }
+    if (gDirty && MessageBoxW(gWindow, wp::tr(L"Scartare le modifiche non salvate della palette?").c_str(),
+                             L"WinPuttier", MB_YESNO | MB_ICONQUESTION) != IDYES) {
+        const auto previous = std::find_if(gVisibleThemes.begin(), gVisibleThemes.end(), [](size_t index) {
+            return keyOf(gAllThemes[index]) == gThemeKey;
+        });
+        const auto row = previous == gVisibleThemes.end() ? -1 : previous - gVisibleThemes.begin();
+        SendMessageW(gThemes, LB_SETCURSEL, row, 0);
         return;
     }
     gSelectedTheme=*theme;
@@ -388,7 +393,8 @@ void filterThemes(const std::wstring& preferred=L""){
         gVisibleThemes.push_back(i);
         if(keyOf(t)==target)focus=(int)gVisibleThemes.size()-1;
     }
-    if(focus<0&&!gVisibleThemes.empty())focus=0;
+    // A filter can hide the edited palette without changing what the editor holds.
+    if (focus < 0 && !gDirty && !gVisibleThemes.empty()) focus = 0;
     if(focus>=0)SendMessageW(gThemes,LB_SETCURSEL,focus,0);
     SendMessageW(gThemes,WM_SETREDRAW,TRUE,0);
     InvalidateRect(gThemes,nullptr,TRUE);
@@ -690,10 +696,7 @@ void resetChanges(){
 void importReg(){
     std::wstring path,result;
     if(!filePicker(false,path))return;
-    if(wp::importTheme(path,result)){
-        gThemeKey.clear();gDirty=false;
-        reloadCatalog();
-    }
+    if (wp::importTheme(path, result)) reloadCatalog();
     message(result);
 }
 void savePersonalTheme(wp::Theme theme,bool afterSession=false){
@@ -880,7 +883,7 @@ void createControls(){
     if(!gCardBrush)gCardBrush=CreateSolidBrush(RGB(255,255,255));
     rebuildFonts();
     gAppName=label(L"WinPuttier",8000);
-    gAppSub=label(L"PuTTY Theme Manager  ·  Versione 0.6.4",8010);
+    gAppSub=label(L"PuTTY Theme Manager  ·  Versione " WINPUTTIER_VERSION_WIDE,8010);
     gLanguageIt=button(L"IT",ID_LANGUAGE_IT);
     gLanguageEn=button(L"EN",ID_LANGUAGE_EN);
     gSessionTitle=label(L"01   SESSIONI PuTTY",8001);
@@ -924,7 +927,7 @@ void createControls(){
 void refreshLanguage(){
     // Relabel controls in place; preserve session/theme selection and unsaved edits.
     const std::pair<HWND,const wchar_t*> labels[]={
-        {gAppSub,L"PuTTY Theme Manager  ·  Versione 0.6.4"},
+        {gAppSub,L"PuTTY Theme Manager  ·  Versione " WINPUTTIER_VERSION_WIDE},
         {gSessionTitle,L"01   SESSIONI PuTTY"},
         {gThemesTitle,L"02   LIBRERIA TEMI"},
         {gPreviewTitle,L"03   ANTEPRIMA ANSI · SCORRI PER ESPLORARE"},
@@ -1040,16 +1043,16 @@ LRESULT CALLBACK mainProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
             return 0;
         }
         if(id==ID_SOURCE_FILTER&&notification==BN_CLICKED){
-            const int index=showSourceMenu();
-            if(index>=0){
-                gSelectedSource=gFilterSources[index];
-                localizedText(gSourceFilter,gSelectedSource);
-                gDirty=false;gThemeKey.clear();filterThemes();
+            const auto source = showSourceMenu();
+            if (std::find(gFilterSources.begin(), gFilterSources.end(), source) != gFilterSources.end()) {
+                gSelectedSource = source;
+                localizedText(gSourceFilter, gSelectedSource);
+                filterThemes();
             }
             return 0;
         }
         if(id==ID_SEARCH&&notification==EN_CHANGE){
-            gDirty=false;gThemeKey.clear();filterThemes();return 0;
+            filterThemes();return 0;
         }
         if(id>=ID_SWATCH_FIRST&&id<ID_SWATCH_FIRST+22&&notification==BN_CLICKED){
             selectColor(id-ID_SWATCH_FIRST);return 0;
