@@ -13,10 +13,14 @@ A native Windows app for previewing, editing and applying **PuTTY colour schemes
 
 ## Get started
 
+To apply a theme, you need at least one saved PuTTY session.
+
 1. Download **WinPuttier.exe** from the [latest release](https://github.com/tommaso82/winputtier/releases/latest). The executable is unsigned. The release includes `SHA256SUMS.txt` for checking the download.
-2. Open WinPuttier. Select a saved PuTTY session and try the built-in palette, or click **Sync library** (*Sincronizza libreria*) to download more themes.
+2. Open WinPuttier and select a saved PuTTY session. The built-in **Default (PuTTY)** palette is available immediately; use **Sync library** (*Sincronizza libreria*) to download more themes.
 3. Preview the palette and click **Apply theme** (*Applica tema*). To undo colour changes, click **Restore original colours** (*Ripristina colori originali*).
 4. Reopen any running PuTTY window to see changes to its saved session.
+
+Optional download verification: Open PowerShell in the download folder and run `Get-FileHash .\WinPuttier.exe -Algorithm SHA256`. Compare the resulting hash with the value in `SHA256SUMS.txt`.
 
 ## What it does
 
