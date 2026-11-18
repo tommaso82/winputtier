@@ -9,7 +9,7 @@ A native Windows app for previewing, editing and applying **PuTTY colour schemes
 
 ![WinPuttier showing PuTTY sessions, the theme library and an ANSI preview](docs/winputtier-screenshot.webp)
 
-*WinPuttier 0.6.3 with anonymized session names.*
+*WinPuttier 0.6.3*
 
 ## Get started
 
