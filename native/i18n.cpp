@@ -1,4 +1,5 @@
 #include "i18n.h"
+#include "winputtier_version.h"
 #include <windows.h>
 #include <algorithm>
 #include <cwchar>
@@ -13,7 +14,7 @@ constexpr wchar_t settingsKey[]=L"Software\\WinPuttier";
 using Pair=std::pair<std::wstring,std::wstring>;
 const std::unordered_map<std::wstring,std::wstring>& dictionary(){
  static const std::unordered_map<std::wstring,std::wstring> translations={
-  {L"PuTTY Theme Manager  ·  Versione 0.6.4",L"PuTTY Theme Manager  ·  Version 0.6.4"},
+  {L"PuTTY Theme Manager  ·  Versione " WINPUTTIER_VERSION_WIDE, L"PuTTY Theme Manager  ·  Version " WINPUTTIER_VERSION_WIDE},
   {L"01   SESSIONI PuTTY",L"01   PuTTY SESSIONS"},
   {L"02   LIBRERIA TEMI",L"02   THEME LIBRARY"},
   {L"03   ANTEPRIMA ANSI · SCORRI PER ESPLORARE",L"03   ANSI PREVIEW · SCROLL TO EXPLORE"},

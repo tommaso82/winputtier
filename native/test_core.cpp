@@ -125,6 +125,21 @@ int main() {
        wp::themeNameContains(named,L"notfound")) {
         std::cerr<<"Theme name-only filtering regression\n";return 19;
     }
+    const auto previousCatalog = wp::parseCatalogText(
+        L"Unavailable\tFavourite\thttps://raw.githubusercontent.com/test/old.reg\told-sha\n"
+        L"Removed\tRetired\thttps://raw.githubusercontent.com/test/removed.reg\n"
+        L"Available\tPrevious\thttps://raw.githubusercontent.com/test/replaced.reg\n");
+    const auto refreshed = wp::parseCatalogText(
+        L"Available\tNew\thttps://raw.githubusercontent.com/test/new.reg\tnew-sha\n");
+    const auto partial = wp::retainUnavailableSources(refreshed, previousCatalog, {L"Unavailable"});
+    const auto recovered = wp::retainUnavailableSources(refreshed, partial, {});
+    const std::vector<std::wstring> favourites{wp::themeId(previousCatalog[0])};
+    if (partial.size() != 2 || wp::themeId(partial[0]) != wp::themeId(refreshed[0]) ||
+        !wp::isFavorite(partial[1], favourites) || partial[1].remoteRevision != L"old-sha" ||
+        recovered.size() != 1 || wp::themeId(recovered[0]) != wp::themeId(refreshed[0])) {
+        std::cerr << "Partial catalog refresh lost a cached identity or kept a removed collection\n";
+        return 20;
+    }
     std::wcout<<L"Native theme identity, favorites, source, localisation, search and backup tests passed\n";
     return 0;
 }

@@ -45,12 +45,14 @@ bool themeNameContains(const Theme& theme,const std::wstring& normalizedQuery);
 std::vector<Theme> localThemes();
 std::vector<Theme> remoteCatalog();
 std::vector<Theme> parseCatalogText(const std::wstring& content);
+std::vector<Theme> retainUnavailableSources(const std::vector<Theme>& refreshed,
+                                            const std::vector<Theme>& previous,
+                                            const std::vector<std::wstring>& unavailable);
 bool validateSourceConfig(const std::wstring& input, std::wstring& error);
 std::wstring sourceConfigText();
 bool updateSourceConfig(const std::wstring& text, std::wstring& message);
 std::vector<ThemeSource> configuredSources();
 bool themeFromSession(const Session& session, Theme& theme, std::wstring& error);
-bool refreshCatalog(std::wstring& message);
 bool syncLibrary(std::wstring& message, const std::function<void(size_t,size_t)>& progress);
 bool downloadTheme(Theme& item, std::wstring& error);
 bool importTheme(const std::wstring& path, std::wstring& message);
